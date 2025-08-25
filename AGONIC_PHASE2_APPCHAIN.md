@@ -52,7 +52,10 @@ Enhanced Architecture:
 │   ├── treasury/             # Multi-stablecoin treasury with ETH DCA  
 │   ├── bonds/                # ATN multi-asset notes managed natively
 │   └── governance/           # LP staker + AGN holder governance with L3 economics
-├── bridge/                    # Base L2 ↔ Agonic L3
+├── bridge/                    # **Multi-asset Base L2 ↔ Agonic L3 with FX optimization**
+│   ├── MultiAssetBridge.sol   # USDC/USD1/EURC bridge with atomic FX routing
+│   ├── BridgeFeeCollector.sol # Bridge fees → treasury revenue stream
+│   └── FXOptimizer.sol        # On-bridge arbitrage for best conversion rates
 └── migration-tools/           # User asset migration utilities
 ```
 

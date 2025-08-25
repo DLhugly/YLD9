@@ -6,11 +6,12 @@
 A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy-style) and performs disciplined AGN buybacks. Built on Base L2 infrastructure with professional-grade smart contracts.
 
 ## **Key Features**
-1. **ERC-4626 USDC Vault** - Conservative yield farming with venue caps and safety buffers
-2. **ETH Treasury Accumulation** - Weekly DCA purchases funded by protocol fees  
+1. **Multi-Stablecoin ERC-4626 Vault** - Conservative yield across USDC, USD1, EURC with automated protocol rebalancing (Aave, WLF, Uniswap V3, Aerodrome)
+2. **ETH Treasury Accumulation** - Weekly DCA purchases funded by protocol fees + **automated FX arbitrage** + **ETH staking rewards**
 3. **AGN Buyback Mechanism** - 40% of net yield → programmatic buybacks (gated by safety controls)
-4. **Agonic Treasury Notes (ATN)** - Fixed-APR USDC bonds to accelerate ETH accumulation
-5. **Built on StableSwap** - Proven multi-venue routing and Base L2 optimization
+4. **Agonic Treasury Notes (ATN)** - Fixed-APR multi-stablecoin bonds to accelerate ETH accumulation
+5. **Personalized Yield Simulator** - Interactive frontend tools for deposit modeling and "what-if" scenarios
+6. **Built on StableSwap** - Proven multi-venue routing and Base L2 optimization
 
 ## **Repository Structure**
 

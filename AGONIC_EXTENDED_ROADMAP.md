@@ -65,7 +65,9 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 | Runway buffer | **6 months** OPEX (multi-stablecoin) |
 | Weekly DCA cap | **$5,000** equivalent (scales with TVL) |
 | FX arbitrage | Enabled for EURC/USDC/USD1 pairs |
-| Buyback pool | **40% of NY** (gated, includes FX profits) |
+| FX arbitrage threshold | **0.1%** minimum deviation for automatic execution |
+| ETH staking allocation | **≤20%** of treasury ETH via Lido/Rocket Pool |
+| Buyback pool | **40% of NY** (gated, includes FX profits + staking rewards) |
 | Buyback split | **50% burn / 50% treasury** |
 | LP governance | LP stakers vote on high-risk strategies |
 | CR minimum | **1.2×** (multi-asset treasury) |
@@ -83,7 +85,7 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
    - **WLFAdapter.sol** — World Liberty Financial vault integration
    - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management  
    - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
-4. **Treasury.sol** — Multi-stablecoin/ETH holdings, DCA execution, FX arbitrage, runway/CR tracking
+4. **Treasury.sol** — Multi-stablecoin/ETH holdings, DCA execution, **automated FX arbitrage thresholds**, **ETH staking integration**, runway/CR tracking
 5. **BondManager.sol + ATNTranche.sol** — Fixed-APR multi-stablecoin note issuance and management
 6. **Buyback.sol** — TWAP AGN purchases with LP governance integration, burn/treasury split
 7. **Gov.sol** — Dual governance (AGN holders + LP stakers) over protocol integrations and parameters

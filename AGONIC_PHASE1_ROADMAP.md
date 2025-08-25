@@ -65,6 +65,8 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 | Fee on Yield        | **12%** (never on principal)                                                                 |
 | Runway buffer       | **6 months** OPEX (USDC)                                                                     |
 | Weekly DCA cap      | **$5,000** USDC (can scale with TVL)                                                        |
+| FX arbitrage threshold | **0.1%** minimum price deviation to trigger automatic execution                             |
+| ETH staking allocation | **≤20%** of treasury ETH (Lido/Rocket Pool integration)                                     |
 | Buyback pool        | **40% of NY** (gated)                                                                        |
 | Buyback frequency   | **Weekly** (aligned with DCA schedule)                                                       |
 | Buyback split       | **50% burn / 50% treasury**                                                                  |
@@ -85,7 +87,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
    - **WLFAdapter.sol** — World Liberty Financial vault integration  
    - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management
    - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
-4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()`.
+4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, **ETH staking integration**, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()` + `stakeETH()`.
 5. **BondManager.sol + ATNTranche.sol** — fixed-APR multi-stablecoin notes; `subscribe/payCoupons/redeem`; issuance auto-pauses if CR < 1.2×.
 6. **Buyback.sol** — **Weekly** TWAP/split orders with LP governance integration; splits **50/50 burn/treasury**.
 7. **Gov.sol** — AGN holder + LP staker governance; LP stakers can vote on protocol integrations and high-risk strategies.
@@ -105,8 +107,8 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
    - Governance contracts with dual voting (AGN + LP stakers)
 
 2. **Complete Web Interface**:
-   - Multi-asset deposit/withdraw with real-time APY comparison
-   - Treasury dashboard with ETH accumulation and FX profit tracking
+   - Multi-asset deposit/withdraw with **personalized yield simulator** and real-time APY comparison
+   - Treasury dashboard with ETH accumulation, **staking rewards**, and **automated FX arbitrage** tracking
    - ATN subscription flow with coupon schedules and CR monitoring
    - Buyback status with safety gate indicators and TPT metrics
    - Protocol allocation breakdown across all integrated venues
@@ -121,12 +123,12 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ## 6) Dashboard (must-have tiles)
 
-1. **Your position:** shares, earned yield by stablecoin, ETH Boost toggle, LP staking status (if applicable).
+1. **Your position:** shares, earned yield by stablecoin, ETH Boost toggle, **personalized yield simulator** (deposit amount → projected monthly yield + ETH boost split using real-time APY from `quote/route.ts`), LP staking status (if applicable).
 2. **Vault:** Total TVL by asset (USDC/USD1/EURC); protocol allocation breakdown (Aave/WLF/Uniswap/Aerodrome); idle % by stablecoin; realized net APY per protocol.
-3. **Treasury:** ETH reserve over time; **BuyEthExecuted** + **FXArbitrageExecuted** logs with routing details.
+3. **Treasury:** ETH reserve over time; **staked ETH rewards**; **BuyEthExecuted** + **FXArbitrageExecuted** logs with routing details; **automated FX thresholds** status.
 4. **ATN:** outstanding principal by stablecoin; next coupon date/amount; coupons paid; **CR**.
 5. **Buybacks:** weekly execution log, AGN bought/burned/treasury; **liquidity depth check**; LP governance participation; safety lights **RUNWAY_OK / CR_OK / BUYBACKS_ON**; **TPT metric**.
-6. **Strategy Performance:** Real-time APY comparison across protocols; rebalancing history; FX arbitrage profit tracking.
+6. **Strategy Performance:** Real-time APY comparison across protocols; rebalancing history; **automated FX arbitrage** profit tracking; **ETH staking yields**.
 
 ---
 
@@ -144,9 +146,11 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 1. **Harvest:** pull strategy yield → Vault → fee on yield → Treasury.
 2. **DCA:** once per week, `weeklyDCA()` with cap; record event.
-3. **Buybacks:** execute weekly TWAP orders when safety gates green; split 50/50 burn/treasury.
-4. **Coupons:** call `payCoupons(trancheId)` weekly (ATN-01).
-5. **Reporting:** publish dashboard snapshot + on-chain tx bundle; update TPT metric.
+3. **ETH Staking:** call `stakeETH()` to stake up to 20% of treasury ETH; compound staking rewards weekly.
+4. **FX Arbitrage:** monitor automated threshold triggers; manual `executeFXArbitrage()` for large opportunities.
+5. **Buybacks:** execute weekly TWAP orders when safety gates green; split 50/50 burn/treasury.
+6. **Coupons:** call `payCoupons(trancheId)` weekly (ATN-01).
+7. **Reporting:** publish dashboard snapshot + on-chain tx bundle; update TPT metric; track staking yields.
 
 ---
 
