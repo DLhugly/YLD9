@@ -1,20 +1,25 @@
-# 💱 **StableSwap - Multi-Venue DEX Aggregator**
+# 🏦 **Agonic - Stable Yield Vault with ETH Treasury**
 
-## **What is StableSwap?**
-A high-performance DeFi swap aggregator optimized for Base L2, featuring intelligent routing between Uniswap v3 and Aerodrome to ensure users always get the best execution price.
+## **What is Agonic?**
+A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy-style) and performs disciplined AGN buybacks. Built on StableSwap's proven Base L2 infrastructure with professional-grade smart contracts.
 
 ## **Key Features**
-1. **Multi-venue routing** - Compares Uniswap v3 and Aerodrome in real-time
-2. **FX arbitrage detection** - Identifies profitable EUR/USD dislocations  
-3. **Gas-optimized execution** - Built for Base L2's sub-cent transaction costs
-4. **Professional-grade contracts** - Secure execution with fee collection and slippage protection
+1. **ERC-4626 USDC Vault** - Conservative yield farming with venue caps and safety buffers
+2. **ETH Treasury Accumulation** - Weekly DCA purchases funded by protocol fees  
+3. **AGN Buyback Mechanism** - 40% of net yield → programmatic buybacks (gated by safety controls)
+4. **Agonic Treasury Notes (ATN)** - Fixed-APR USDC bonds to accelerate ETH accumulation
+5. **Built on StableSwap** - Proven multi-venue routing and Base L2 optimization
 
 ## **Repository Structure**
 
 ```
-StableSwap/
-├── README.md                     # This file
-├── apps/stable-swap/             # Next.js DeFi swap application
+Agonic/
+├── README.md                     # Project overview
+├── AGONIC_PHASE1_ROADMAP.md      # 4-8 week implementation plan
+├── AGONIC_PHASE2_APPCHAIN.md     # App chain evolution strategy  
+├── AGONIC_EXTENDED_ROADMAP.md    # Full technical specification
+├── AGONIC_FORK_GUIDE.md          # Development setup guide
+├── apps/stable-swap/             # Next.js foundation (will become vault UI)
 │   ├── package.json             # Dependencies: React 19, Next.js 15, viem, wagmi
 │   ├── src/
 │   │   ├── app/
@@ -47,33 +52,33 @@ StableSwap/
 ## **Core Features (MVP)**
 
 ### **1. Multi-Venue Swap Routing**
-- **Uniswap v3 Integration**: QuoterV2 for quotes + Universal Router for execution
-- **Aerodrome Integration**: Solidly-style router with stable/volatile pool support
-- **Best Route Selection**: Compares venues and selects optimal execution path
-- **Fee Structure**: 5 bps fee collected by RouterExecutor contract
+1. **Uniswap v3 Integration**: QuoterV2 for quotes + Universal Router for execution
+2. **Aerodrome Integration**: Solidly-style router with stable/volatile pool support
+3. **Best Route Selection**: Compares venues and selects optimal execution path
+4. **Fee Structure**: 5 bps fee collected by RouterExecutor contract
 
 ### **2. FX Dislocation Detection**
-- **Implied FX Calculation**: Derives EUR/USD rate from EURC/USDC pool quotes
-- **Oracle Integration**: Chainlink + Pyth EUR/USD median for reference rate
-- **Arbitrage Opportunities**: Identifies profitable dislocations after fees/slippage
+1. **Implied FX Calculation**: Derives EUR/USD rate from EURC/USDC pool quotes
+2. **Oracle Integration**: Chainlink + Pyth EUR/USD median for reference rate
+3. **Arbitrage Opportunities**: Identifies profitable dislocations after fees/slippage
 
 ### **3. Smart Contract Architecture**
-- **RouterExecutor.sol**: Allowlisted contract for secure swap execution
-- **Fee Collection**: Takes percentage fee on successful swaps
-- **MinOut Protection**: Enforces slippage protection and reverts on bad trades
-- **Multi-Router Support**: Works with both Uniswap Universal Router and Aerodrome
+1. **RouterExecutor.sol**: Allowlisted contract for secure swap execution
+2. **Fee Collection**: Takes percentage fee on successful swaps
+3. **MinOut Protection**: Enforces slippage protection and reverts on bad trades
+4. **Multi-Router Support**: Works with both Uniswap Universal Router and Aerodrome
 
 ### **4. Base L2 Optimized**
-- **Low Gas Costs**: Optimized for Base network's sub-cent transaction fees
-- **Environment Configuration**: Supports multiple deployment environments
-- **Token Support**: USDC, EURC, USD1 with configurable addresses/decimals
+1. **Low Gas Costs**: Optimized for Base network's sub-cent transaction fees
+2. **Environment Configuration**: Supports multiple deployment environments
+3. **Token Support**: USDC, EURC, USD1 with configurable addresses/decimals
 
 ## **Technical Stack**
-- **Frontend**: Next.js 15 + React 19 + Tailwind CSS 4
-- **Blockchain**: viem + wagmi for Base L2 interactions
-- **Smart Contracts**: Solidity ^0.8.20 with Foundry (planned)
-- **APIs**: Next.js API routes for server-side logic
-- **Architecture**: Monorepo ready for Taska expansion
+1. **Frontend**: Next.js 15 + React 19 + Tailwind CSS 4
+2. **Blockchain**: viem + wagmi for Base L2 interactions
+3. **Smart Contracts**: Solidity ^0.8.20 with Foundry (planned)
+4. **APIs**: Next.js API routes for server-side logic
+5. **Architecture**: Monorepo ready for Taska expansion
 
 ## **API Endpoints**
 
@@ -106,18 +111,18 @@ Calculates implied EUR/USD rate from EURC/USDC pools
 
 
 ## **Development Status**
-- ✅ **Core swap routing** implemented
-- ✅ **Multi-venue quote aggregation** working  
-- ✅ **FX dislocation detection** functional
-- ✅ **RouterExecutor contract** deployed and tested
-- ✅ **Base L2 integration** complete
+1. ✅ **Core swap routing** implemented
+2. ✅ **Multi-venue quote aggregation** working  
+3. ✅ **FX dislocation detection** functional
+4. ✅ **RouterExecutor contract** deployed and tested
+5. ✅ **Base L2 integration** complete
 
 ## **Getting Started**
 
 ### **Installation**
 ```bash
-git clone https://github.com/your-username/StableSwap.git
-cd StableSwap/apps/stable-swap
+git clone https://github.com/DLhugly/YLD9.git agonic
+cd agonic/apps/stable-swap
 npm install
 ```
 
@@ -149,17 +154,32 @@ SAFETY_BUFFER_BPS="10"
 npm run dev
 ```
 
-Visit `http://localhost:3000` to access the swap interface.
+Visit `http://localhost:3000` to access the current swap interface (will be adapted to vault UI).
+
+## **Project Documentation**
+
+### **Implementation Plans**
+- **[AGONIC_PHASE1_ROADMAP.md](./AGONIC_PHASE1_ROADMAP.md)** - Day-one product: vault, treasury, bonds (4-8 weeks)  
+- **[AGONIC_PHASE2_APPCHAIN.md](./AGONIC_PHASE2_APPCHAIN.md)** - App chain evolution with proof-of-task (6-12 months)
+- **[AGONIC_EXTENDED_ROADMAP.md](./AGONIC_EXTENDED_ROADMAP.md)** - Complete technical specification
+- **[AGONIC_FORK_GUIDE.md](./AGONIC_FORK_GUIDE.md)** - Development setup and architecture guide
+
+### **Key Parameters (Phase 1)**
+1. **Vault Asset:** USDC (Base L2)
+2. **Fee on Yield:** 12% (never on principal)  
+3. **Weekly DCA Cap:** $5,000 USDC → ETH
+4. **Buyback Allocation:** 40% of net yield (gated by safety controls)
+5. **Safety Gates:** 6-month runway + 1.2× coverage ratio
 
 ## **License**
 MIT License - see LICENSE file for details
 
 ## **Network**
-Optimized for **Base L2** (Chain ID: 8453)
+**Base L2** (Chain ID: 8453) - Optimized for sub-cent transaction costs
 
 ---
 
-*Open source DEX aggregator for efficient multi-venue swaps*
+*Stable yield with disciplined ETH accumulation and programmatic buybacks*
 
 
 

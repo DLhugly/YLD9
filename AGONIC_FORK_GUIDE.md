@@ -10,10 +10,10 @@
 ## Files to Bring to Agonic Fork
 
 ### **Planning Documents** ✅ 
-- `AGONIC_PHASE1_ROADMAP.md` — Day one product (4-8 weeks)
-- `AGONIC_PHASE2_APPCHAIN.md` — App chain evolution (6-12 months) 
-- `AGONIC_EXTENDED_ROADMAP.md` — Full technical specification
-- `ROADMAP.md` — Original Taska context (for reference)
+1. `AGONIC_PHASE1_ROADMAP.md` — Day one product (4-8 weeks)
+2. `AGONIC_PHASE2_APPCHAIN.md` — App chain evolution (6-12 months) 
+3. `AGONIC_EXTENDED_ROADMAP.md` — Full technical specification
+4. `ROADMAP.md` — Original Taska context (for reference)
 
 ### **StableSwap Foundation** ✅
 **Core code to adapt:**
@@ -120,10 +120,10 @@ mv apps/stable-swap apps/web
 
 ### **4. First Implementation Target**
 **Week 1-2 Goal:** Basic vault + treasury working on Base L2
-- Deploy `StableVault4626.sol` (ERC-4626 USDC vault)
-- Deploy `Treasury.sol` (adapted from RouterExecutor fee logic)
-- Deploy `StrategyAdapter.sol` (reuse your venue expertise)  
-- Build vault UI (adapt SwapCard → VaultCard)
+1. Deploy `StableVault4626.sol` (ERC-4626 USDC vault)
+2. Deploy `Treasury.sol` (adapted from RouterExecutor fee logic)
+3. Deploy `StrategyAdapter.sol` (reuse your venue expertise)  
+4. Build vault UI (adapt SwapCard → VaultCard)
 
 ---
 

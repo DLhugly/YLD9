@@ -14,31 +14,31 @@ This creates a **much more compelling long-term vision** while keeping the near-
 Instead of arbitrary tasks, **vault management becomes the work that secures the chain:**
 
 1. **Validator Requirements:**
-   - Run vault strategies and submit yield proofs
-   - Execute DCA trades and verify ETH prices  
-   - Process ATN coupon payments
-   - Maintain coverage ratio calculations
+   1. Run vault strategies and submit yield proofs
+   2. Execute DCA trades and verify ETH prices  
+   3. Process ATN coupon payments
+   4. Maintain coverage ratio calculations
 
 2. **Proof-of-Task Consensus:**
-   - Block producers must prove successful vault operations
-   - Invalid yield reports → slashing
-   - Coverage ratio violations → validator penalties
-   - Best-performing vault operators → higher rewards
+   1. Block producers must prove successful vault operations
+   2. Invalid yield reports → slashing
+   3. Coverage ratio violations → validator penalties
+   4. Best-performing vault operators → higher rewards
 
 3. **Economic Security:**
-   - Validators stake AGN + must hold vault shares
-   - Treasury ETH secures validator rewards
-   - Poor vault performance = chain security risk
+   1. Validators stake AGN + must hold vault shares
+   2. Treasury ETH secures validator rewards
+   3. Poor vault performance = chain security risk
 
 ## Updated Roadmap Structure
 
 ### **Phase 1: Base L2 Foundation** (4-8 weeks)
 ```
 Current AGONIC_PHASE1_ROADMAP → UNCHANGED
-- Launch vault, treasury, bonds on Base L2
-- Prove product-market fit
-- Build user base and treasury reserves
-- AttestationEmitter = preparation for chain migration
+1. Launch vault, treasury, bonds on Base L2
+2. Prove product-market fit
+3. Build user base and treasury reserves
+4. AttestationEmitter = preparation for chain migration
 ```
 
 ### **Phase 2: App Chain Migration** (Months 6-12)
@@ -58,11 +58,11 @@ Enhanced Architecture:
 ### **Cosmos SDK + Proof-of-Task**
 
 **Chain Specifications:**
-- **Consensus:** Tendermint with PoT validator selection
-- **Validators:** Must run vault strategies to participate  
-- **Block time:** ~5 seconds (optimized for DeFi operations)
-- **Finality:** Instant (Tendermint BFT)
-- **IBC enabled:** Connect to Cosmos ecosystem
+1. **Consensus:** Tendermint with PoT validator selection
+2. **Validators:** Must run vault strategies to participate  
+3. **Block time:** ~5 seconds (optimized for DeFi operations)
+4. **Finality:** Instant (Tendermint BFT)
+5. **IBC enabled:** Connect to Cosmos ecosystem
 
 **Validator Economics:**
 ```
@@ -91,39 +91,39 @@ Validator Rewards:
 ### **User Experience Improvements**
 
 **On App Chain:**
-- ✅ **Lower gas costs** (specialized for vault operations)
-- ✅ **Faster settlement** (5s blocks vs 2s Base)
-- ✅ **Native governance** (AIP voting built into chain)
-- ✅ **Cross-chain yield** (IBC to other Cosmos chains)
-- ✅ **MEV protection** (validators aligned with users)
+1. ✅ **Lower gas costs** (specialized for vault operations)
+2. ✅ **Faster settlement** (5s blocks vs 2s Base)
+3. ✅ **Native governance** (AIP voting built into chain)
+4. ✅ **Cross-chain yield** (IBC to other Cosmos chains)
+5. ✅ **MEV protection** (validators aligned with users)
 
 ## Implementation Timeline
 
 ### **Phase 1: Foundation** (Months 1-2, AGONIC_PHASE1_ROADMAP as-is)
-- ✅ Launch vault + treasury + bonds on Base L2
-- ✅ Build user base ($1M+ TVL target)
-- ✅ Prove unit economics work
-- ✅ AttestationEmitter → data for chain design
+1. ✅ Launch vault + treasury + bonds on Base L2
+2. ✅ Build user base ($1M+ TVL target)
+3. ✅ Prove unit economics work
+4. ✅ AttestationEmitter → data for chain design
 
 ### **Phase 2A: Chain Development** (Months 3-8, parallel to Base ops)
-- 📋 Design Cosmos SDK modules
-- 📋 Implement PoT consensus modifications  
-- 📋 Build bridge architecture
-- 📋 Testnet with validator recruitment
+1. 📋 Design Cosmos SDK modules
+2. 📋 Implement PoT consensus modifications  
+3. 📋 Build bridge architecture
+4. 📋 Testnet with validator recruitment
 
 ### **Phase 2B: Migration** (Months 9-12)
-- 📋 Mainnet launch with genesis validators
-- 📋 Bridge assets from Base L2  
-- 📋 Migrate user positions
-- 📋 Enable IBC connections
+1. 📋 Mainnet launch with genesis validators
+2. 📋 Bridge assets from Base L2  
+3. 📋 Migrate user positions
+4. 📋 Enable IBC connections
 
 ## Strategic Advantages
 
 ### **Competitive Moat**
-- **First proof-of-task app chain** (patent-able innovation)
-- **Validator-vault alignment** (impossible on general chains)  
-- **Treasury-secured consensus** (novel economic security)
-- **DeFi-native infrastructure** (optimized for yield operations)
+1. **First proof-of-task app chain** (patent-able innovation)
+2. **Validator-vault alignment** (impossible on general chains)  
+3. **Treasury-secured consensus** (novel economic security)
+4. **DeFi-native infrastructure** (optimized for yield operations)
 
 ### **Token Value Accrual**
 ```
