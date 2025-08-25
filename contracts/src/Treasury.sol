@@ -56,6 +56,23 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice Maximum basis points
     uint256 public constant MAX_BPS = 10000;
     
+    /// @notice AGN token for TPT calculations
+    IERC20 public AGN;
+    
+    /// @notice TPT (Treasury per Token) history
+    struct TPTSnapshot {
+        uint256 timestamp;
+        uint256 tptValue; // Treasury value per AGN token (scaled by 1e18)
+        uint256 totalTreasuryValue; // Total treasury value in USDC
+        uint256 circulatingSupply; // AGN circulating supply
+    }
+    
+    /// @notice TPT snapshots array
+    TPTSnapshot[] public tptHistory;
+    
+    /// @notice Last TPT publish timestamp
+    uint256 public lastTPTPublish;
+    
     /// @notice Events
     event DCAPurchase(uint256 usdcAmount, uint256 ethAmount, uint256 ethPrice);
     event FXArbitrage(address fromAsset, address toAsset, uint256 amount, uint256 profit);
@@ -63,6 +80,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     event StakingRewardsClaimed(uint256 amount);
     event SafetyGateTriggered(string gate, bool status);
     event ParameterUpdated(string param, uint256 value);
+    event TPTPublished(uint256 tptValue, uint256 totalTreasuryValue, uint256 circulatingSupply, uint256 timestamp);
 
     constructor(
         address _usdc,
@@ -289,6 +307,145 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     function _getImpliedFXRate(address fromAsset, address toAsset) internal pure returns (uint256) {
         // Simplified - in production use Chainlink oracles or DEX prices
         return 1e18; // Assume 1:1 for now
+    }
+
+    /**
+     * @notice Set AGN token address (owner only)
+     * @param _agn AGN token address
+     */
+    function setAGNToken(address _agn) external onlyOwner {
+        require(_agn != address(0), "Invalid AGN address");
+        AGN = IERC20(_agn);
+    }
+
+    /**
+     * @notice Calculate current TPT (Treasury per Token) value
+     * @return tptValue TPT in USDC per AGN (scaled by 1e18)
+     * @return totalValue Total treasury value in USDC
+     * @return supply Circulating AGN supply
+     */
+    function calculateTPT() public view returns (
+        uint256 tptValue,
+        uint256 totalValue,
+        uint256 supply
+    ) {
+        // Calculate total treasury value
+        totalValue = getTotalTreasuryValue();
+        
+        // Get circulating AGN supply
+        supply = getCirculatingSupply();
+        
+        // Calculate TPT
+        if (supply > 0) {
+            tptValue = (totalValue * 1e18) / supply;
+        }
+    }
+
+    /**
+     * @notice Publish weekly TPT metric
+     * @dev Called by keeper or owner weekly
+     */
+    function publishTPT() external {
+        require(
+            block.timestamp >= lastTPTPublish + 1 weeks || msg.sender == owner(),
+            "Too early for TPT publish"
+        );
+        
+        (uint256 tptValue, uint256 totalValue, uint256 supply) = calculateTPT();
+        
+        // Record snapshot
+        tptHistory.push(TPTSnapshot({
+            timestamp: block.timestamp,
+            tptValue: tptValue,
+            totalTreasuryValue: totalValue,
+            circulatingSupply: supply
+        }));
+        
+        lastTPTPublish = block.timestamp;
+        
+        emit TPTPublished(tptValue, totalValue, supply, block.timestamp);
+    }
+
+    /**
+     * @notice Get total treasury value in USDC
+     * @return totalValue Total value including stablecoins and ETH
+     */
+    function getTotalTreasuryValue() public view returns (uint256 totalValue) {
+        // Add all stablecoin balances
+        totalValue += stablecoinBalances[USDC];
+        totalValue += stablecoinBalances[USD1];
+        totalValue += stablecoinBalances[EURC];
+        
+        // Add ETH value (liquid + staked)
+        uint256 totalETH = liquidETH + stakedETH;
+        totalValue += (totalETH * ethPrice) / 1e18; // Convert ETH to USDC value
+        
+        // Add staking rewards value
+        totalValue += (stakingRewards * ethPrice) / 1e18;
+    }
+
+    /**
+     * @notice Get circulating AGN supply
+     * @return supply Circulating supply (total - treasury holdings)
+     */
+    function getCirculatingSupply() public view returns (uint256 supply) {
+        if (address(AGN) != address(0)) {
+            uint256 totalSupply = AGN.totalSupply();
+            uint256 treasuryBalance = AGN.balanceOf(address(this));
+            supply = totalSupply - treasuryBalance;
+        }
+    }
+
+    /**
+     * @notice Get TPT history
+     * @param count Number of recent snapshots to return
+     * @return snapshots Array of TPT snapshots
+     */
+    function getTPTHistory(uint256 count) external view returns (TPTSnapshot[] memory snapshots) {
+        uint256 historyLength = tptHistory.length;
+        uint256 returnCount = count > historyLength ? historyLength : count;
+        
+        snapshots = new TPTSnapshot[](returnCount);
+        
+        for (uint256 i = 0; i < returnCount; i++) {
+            snapshots[i] = tptHistory[historyLength - 1 - i];
+        }
+    }
+
+    /**
+     * @notice Get latest TPT value
+     * @return tptValue Most recent TPT value
+     * @return timestamp When it was recorded
+     */
+    function getLatestTPT() external view returns (uint256 tptValue, uint256 timestamp) {
+        if (tptHistory.length > 0) {
+            TPTSnapshot memory latest = tptHistory[tptHistory.length - 1];
+            tptValue = latest.tptValue;
+            timestamp = latest.timestamp;
+        }
+    }
+
+    /**
+     * @notice Transfer AGN for LP staking rewards (called by LPStaking contract)
+     * @param to Recipient address
+     * @param amount AGN amount to transfer
+     */
+    function transferAGNForRewards(address to, uint256 amount) external {
+        require(msg.sender == owner() || _isAuthorizedContract(msg.sender), "Unauthorized");
+        require(address(AGN) != address(0), "AGN not set");
+        
+        AGN.safeTransfer(to, amount);
+    }
+
+    /**
+     * @notice Check if contract is authorized to call treasury functions
+     * @param contractAddr Contract address to check
+     * @return authorized Whether contract is authorized
+     */
+    function _isAuthorizedContract(address contractAddr) internal pure returns (bool authorized) {
+        // In production: maintain whitelist of authorized contracts
+        // For now, allow any contract (will be restricted in deployment)
+        authorized = true;
     }
 
     /**

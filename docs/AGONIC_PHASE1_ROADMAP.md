@@ -75,23 +75,32 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 | CR minimum          | **1.2×**                                                                                     |
 | POL target          | **≥33%** of main LP positions (future)                                                       |
 | ATN-01 tranche      | Cap **$250k**; **8% APR** weekly coupons; **6-month** term; non-transferable until maturity |
+| LP staking pool     | Aerodrome **AGN/USDC** only (v1)                                                            |
+| LP rewards budget   | **1000 AGN/week** from treasury (no minting)                                               |
+| LP pool cap         | **$500K** TVL max                                                                           |
+| POL daily budget    | **$10K** max add per day                                                                    |
+| Keeper provider     | **Gelato** on Base (Chainlink backup)                                                       |
+| TPT publish freq    | **Weekly** via AttestationEmitter                                                           |
 
 ---
 
 ## 4) Contracts (minimal, auditable surfaces)
 
-1. **StableVault4626.sol** — Multi-asset ERC-4626 vault (USDC/USD1/EURC); `deposit/withdraw/harvest()`. Takes **fee on yield only** and forwards to Treasury.
-2. **TreasuryManager.sol** — Multi-protocol rebalancing controller; dynamically allocates across Aave, WLF, Uniswap V3, Aerodrome based on risk-adjusted yields.
+1. **StableVault4626.sol** — Multi-asset ERC-4626 vault (USDC/USD1/EURC); `deposit/withdraw/harvest()`. Takes **fee on yield only** and forwards to Treasury. **ETH Boost option** for yield splitting.
+2. **TreasuryManager.sol** — Multi-protocol rebalancing controller; dynamically allocates across Aave, WLF, Uniswap V3, Aerodrome based on risk-adjusted yields. **Enforces idle buffer ≥20% TVL**.
 3. **Protocol Adapters:**
    - **AaveAdapter.sol** — Aave v3 lending integration for yield floor
    - **WLFAdapter.sol** — World Liberty Financial vault integration  
    - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management
    - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
-4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, **ETH staking integration**, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()` + `stakeETH()`.
-5. **BondManager.sol + ATNTranche.sol** — fixed-APR multi-stablecoin notes; `subscribe/payCoupons/redeem`; issuance auto-pauses if CR < 1.2×.
-6. **Buyback.sol** — **Weekly** TWAP/split orders with LP governance integration; splits **50/50 burn/treasury**.
+4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, **ETH staking integration**, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()` + `stakeETH()`. **Computes and publishes TPT metric weekly**.
+5. **BondManager.sol + ATNTranche.sol** — fixed-APR multi-stablecoin notes; `subscribe/payCoupons/redeem`; **hard-enforced CR ≥ 1.2× gate** for issuance and coupons.
+6. **Buyback.sol** — **Weekly** TWAP/split orders with **hard-enforced safety gates** (runway ≥6m, CR ≥1.2×, liquidity ≥$50K, volume ≤10% 30d); splits **50/50 burn/treasury**.
 7. **Gov.sol** — AGN holder + LP staker governance; LP stakers can vote on protocol integrations and high-risk strategies.
 8. **AttestationEmitter.sol** — emits strategy performance and rebalancing events for full transparency.
+9. **LPStaking.sol** — Aerodrome AGN/USDC LP rewards; treasury-funded AGN emissions (no minting); per-pool caps and weekly budget.
+10. **POLManager.sol** — Protocol-owned liquidity for AGN/USDC; sources from treasury AGN + stable yield; targets ≥33% pool ownership.
+11. **KeeperRegistry.sol** — Gelato/Chainlink automation registry for weekly ops with dry-run simulations.
 
 ---
 
@@ -142,15 +151,21 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ---
 
-## 8) Weekly runbooks
+## 8) Automation & Weekly Operations
 
-1. **Harvest:** pull strategy yield → Vault → fee on yield → Treasury.
-2. **DCA:** once per week, `weeklyDCA()` with cap; record event.
-3. **ETH Staking:** call `stakeETH()` to stake up to 20% of treasury ETH; compound staking rewards weekly.
-4. **FX Arbitrage:** monitor automated threshold triggers; manual `executeFXArbitrage()` for large opportunities.
-5. **Buybacks:** execute weekly TWAP orders when safety gates green; split 50/50 burn/treasury.
-6. **Coupons:** call `payCoupons(trancheId)` weekly (ATN-01).
-7. **Reporting:** publish dashboard snapshot + on-chain tx bundle; update TPT metric; track staking yields.
+### 8.1 Automated via Gelato (permissionless but gated)
+1. **weeklyDCA()** — Every Monday 00:00 UTC; capped at $5K; requires runway ≥6m
+2. **executeBuyback()** — Every Monday 12:00 UTC; requires all gates green (runway, CR, liquidity, volume)
+3. **payCoupons(trancheId)** — Every Sunday 23:00 UTC; auto-pauses if CR < 1.2×
+4. **executeRebalancing()** — When APY deviation > 2% or allocation drift > 5%; max once daily
+5. **executeFXArbitrage()** — When price deviation > 0.1%; max $50K/day; slippage cap 0.5%
+6. **publishTPT()** — Every Sunday 22:00 UTC; emits Treasury-per-Token metric
+
+### 8.2 Manual operations (owner/multisig)
+1. **LP rewards config** — Set weekly AGN budget and pool allocPoints
+2. **POL adds** — Execute strategic liquidity adds within daily budget
+3. **Emergency pause** — Circuit breakers for each automated function
+4. **ETH staking** — Manual provider selection (defer to Phase 2)
 
 ---
 

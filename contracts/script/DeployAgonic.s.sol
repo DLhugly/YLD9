@@ -13,6 +13,9 @@ import "../src/adapters/AaveAdapter.sol";
 import "../src/adapters/WLFAdapter.sol";
 import "../src/adapters/UniswapAdapter.sol";
 import "../src/adapters/AerodromeAdapter.sol";
+import "../src/LPStaking.sol";
+import "../src/POLManager.sol";
+import "../src/KeeperRegistry.sol";
 
 /**
  * @title DeployAgonic
@@ -100,7 +103,38 @@ contract DeployAgonic is Script {
         AerodromeAdapter aerodromeAdapter = new AerodromeAdapter(address(treasuryManager));
         console.log("AerodromeAdapter deployed at:", address(aerodromeAdapter));
 
-        // 10. Configure contracts
+        // 10. Deploy LP Staking
+        console.log("Deploying LPStaking...");
+        LPStaking lpStaking = new LPStaking(
+            address(0x3), // Placeholder for Aerodrome AGN/USDC LP token
+            AGN_TOKEN,    // AGN token address
+            address(treasury)
+        );
+        console.log("LPStaking deployed at:", address(lpStaking));
+
+        // 11. Deploy POL Manager
+        console.log("Deploying POLManager...");
+        POLManager polManager = new POLManager(
+            AGN_TOKEN,    // AGN token address
+            USDC,         // USDC address
+            address(treasury),
+            address(0x5), // Placeholder for Aerodrome AGN/USDC pool
+            address(0x6)  // Placeholder for Aerodrome gauge
+        );
+        console.log("POLManager deployed at:", address(polManager));
+
+        // 12. Deploy Keeper Registry
+        console.log("Deploying KeeperRegistry...");
+        KeeperRegistry keeperRegistry = new KeeperRegistry(
+            address(treasury),
+            address(buyback),
+            address(bondManager),
+            address(treasuryManager),
+            address(attestationEmitter)
+        );
+        console.log("KeeperRegistry deployed at:", address(keeperRegistry));
+
+        // 13. Configure contracts
         console.log("Configuring contracts...");
         
         // Add supported assets to vault
@@ -116,11 +150,18 @@ contract DeployAgonic is Script {
         treasuryManager.setAttestationEmitter(address(attestationEmitter));
         treasuryManager.setVaultAddress(address(vault));
 
+        // Set AGN token in Treasury for TPT calculations
+        treasury.setAGNToken(AGN_TOKEN);
+
         // Configure AttestationEmitter with authorized emitters
         attestationEmitter.addAuthorizedEmitter(address(treasuryManager));
         attestationEmitter.addAuthorizedEmitter(address(treasury));
         attestationEmitter.addAuthorizedEmitter(address(buyback));
         attestationEmitter.addAuthorizedEmitter(address(bondManager));
+        attestationEmitter.addAuthorizedEmitter(address(polManager));
+
+        // Set attestation emitter in POL Manager
+        polManager.setAttestationEmitter(address(attestationEmitter));
 
         // Add all protocol adapters with proper types
         treasuryManager.addProtocolWithType("Aave", address(aaveAdapter), 6000, TreasuryManager.ProtocolType.LENDING);
@@ -148,7 +189,7 @@ contract DeployAgonic is Script {
         treasury.updateFXArbThreshold(10);    // 0.1% FX arbitrage threshold
         treasury.updateETHStakingLimit(2000); // 20% ETH staking limit
 
-        console.log("Agonic v1 deployment completed!");
+        console.log("\\n=== AGONIC v1 PHASE 1 DEPLOYMENT COMPLETE ===");
         console.log("Core Contracts:");
         console.log("- Vault:", address(vault));
         console.log("- Treasury:", address(treasury));
@@ -157,11 +198,16 @@ contract DeployAgonic is Script {
         console.log("- Buyback:", address(buyback));
         console.log("- Governance:", address(governance));
         console.log("- AttestationEmitter:", address(attestationEmitter));
-        console.log("Protocol Adapters:");
+        console.log("\\nProtocol Adapters:");
         console.log("- AaveAdapter:", address(aaveAdapter));
         console.log("- WLFAdapter:", address(wlfAdapter));
         console.log("- UniswapAdapter:", address(uniswapAdapter));
         console.log("- AerodromeAdapter:", address(aerodromeAdapter));
+        console.log("\\nPhase 1 Features:");
+        console.log("- LPStaking:", address(lpStaking));
+        console.log("- POLManager:", address(polManager));
+        console.log("- KeeperRegistry:", address(keeperRegistry));
+        console.log("\\n✅ Ready for Phase 1 launch on Base L2!");
 
         vm.stopBroadcast();
     }

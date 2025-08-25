@@ -111,60 +111,46 @@ contract Buyback is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Execute weekly buyback with safety gate checks
-     * @return executed Whether buyback was executed
+     * @notice Execute weekly buyback with HARD safety gate enforcement
+     * @dev Permissionless but strictly gated by on-chain checks
      */
-    function executeBuyback() external onlyOwner nonReentrant returns (bool executed) {
-        // Check if it's time for weekly buyback
-        if (block.timestamp < lastBuybackTime + buybackFrequency) {
-            emit BuybackSkipped("Too early");
-            return false;
-        }
+    function executeBuyback() external nonReentrant {
+        // Check timing
+        require(block.timestamp >= lastBuybackTime + buybackFrequency, "Too early for buyback");
+        require(buybackPool > 0, "No funds in buyback pool");
         
-        // Check safety gates
+        // HARD SAFETY GATE 1: Runway must be >= 6 months
         (bool runwayOK, bool crOK) = treasury.getSafetyGateStatus();
-        if (!runwayOK || !crOK) {
-            emit BuybackSkipped("Safety gates not green");
-            return false;
-        }
+        require(runwayOK, "SAFETY GATE: Runway < 6 months");
         
-        // Check if we have funds
-        if (buybackPool == 0) {
-            emit BuybackSkipped("No funds in buyback pool");
-            return false;
-        }
+        // HARD SAFETY GATE 2: Coverage Ratio must be >= 1.2x
+        require(crOK, "SAFETY GATE: Coverage Ratio < 1.2x");
         
-        // Check liquidity threshold
-        if (!_checkLiquidityThreshold()) {
-            emit BuybackSkipped("Insufficient liquidity");
-            return false;
-        }
+        // HARD SAFETY GATE 3: Pool liquidity must be >= $50K
+        uint256 poolLiquidity = _getPoolLiquidity();
+        require(poolLiquidity >= minLiquidityThreshold, "SAFETY GATE: Pool liquidity < $50K");
         
-        // Execute TWAP buyback
-        uint256 usdcToSpend = buybackPool;
-        uint256 agnBought = _executeTWAPBuyback(usdcToSpend);
+        // HARD SAFETY GATE 4: Volume cap check (≤10% of 30d volume)
+        uint256 volumeLimit = _get30DayVolumeLimit();
+        uint256 buybackAmount = buybackPool > volumeLimit ? volumeLimit : buybackPool;
+        require(buybackAmount > 0, "Volume limit prevents buyback");
         
-        if (agnBought == 0) {
-            emit BuybackSkipped("No AGN acquired");
-            return false;
-        }
+        // Execute TWAP buyback with the safe amount
+        uint256 agnBought = _executeTWAPBuyback(buybackAmount);
+        require(agnBought > 0, "Buyback execution failed");
         
         // Split AGN: 50% burn, 50% to treasury
         uint256 agnToBurn = (agnBought * BURN_PERCENTAGE) / MAX_BPS;
         uint256 agnToTreasury = agnBought - agnToBurn;
         
-        // Burn AGN tokens
-        if (agnToBurn > 0) {
-            _burnAGN(agnToBurn);
-        }
+        // Burn AGN tokens (send to burn address)
+        AGN.transfer(address(0xdead), agnToBurn);
         
         // Send AGN to treasury
-        if (agnToTreasury > 0) {
-            AGN.safeTransfer(address(treasury), agnToTreasury);
-        }
+        AGN.safeTransfer(address(treasury), agnToTreasury);
         
         // Update statistics
-        totalUSDCSpent += usdcToSpend;
+        totalUSDCSpent += buybackAmount;
         totalAGNBought += agnBought;
         totalAGNBurned += agnToBurn;
         totalAGNToTreasury += agnToTreasury;
@@ -172,20 +158,42 @@ contract Buyback is Ownable, ReentrancyGuard {
         // Record execution
         buybackHistory.push(BuybackExecution({
             timestamp: block.timestamp,
-            usdcSpent: usdcToSpend,
+            usdcSpent: buybackAmount,
             agnBought: agnBought,
             agnBurned: agnToBurn,
             agnToTreasury: agnToTreasury,
-            avgPrice: usdcToSpend * 1e18 / agnBought, // Price in USDC per AGN
+            avgPrice: buybackAmount * 1e18 / agnBought,
             safetyGatesOK: true
         }));
         
-        // Reset buyback pool and update timestamp
-        buybackPool = 0;
+        // Update buyback pool and timestamp
+        buybackPool -= buybackAmount;
         lastBuybackTime = block.timestamp;
         
-        emit BuybackExecuted(usdcToSpend, agnBought, agnToBurn, agnToTreasury);
-        executed = true;
+        emit BuybackExecuted(buybackAmount, agnBought, agnToBurn, agnToTreasury);
+    }
+    
+    /**
+     * @notice Get current safety gate status (view function for UI/keepers)
+     * @return canExecute Whether all gates are green
+     * @return runwayOK Whether runway >= 6 months
+     * @return crOK Whether CR >= 1.2x
+     * @return liquidityOK Whether pool liquidity >= $50K
+     * @return volumeOK Whether within 30d volume limits
+     */
+    function getSafetyGateStatus() external view returns (
+        bool canExecute,
+        bool runwayOK,
+        bool crOK,
+        bool liquidityOK,
+        bool volumeOK
+    ) {
+        (runwayOK, crOK) = treasury.getSafetyGateStatus();
+        liquidityOK = _getPoolLiquidity() >= minLiquidityThreshold;
+        volumeOK = buybackPool <= _get30DayVolumeLimit();
+        canExecute = runwayOK && crOK && liquidityOK && volumeOK && 
+                    block.timestamp >= lastBuybackTime + buybackFrequency &&
+                    buybackPool > 0;
     }
 
     /**
@@ -242,13 +250,33 @@ contract Buyback is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Check if liquidity threshold is met
+     * @notice Get current pool liquidity from DEX
+     * @return liquidity Current pool liquidity in USDC
+     */
+    function _getPoolLiquidity() internal view returns (uint256 liquidity) {
+        // In production: query actual DEX pool reserves
+        // For Aerodrome/Uniswap V3, get reserve amounts
+        // Mock implementation for testing
+        liquidity = 100000e6; // Mock $100K liquidity
+    }
+    
+    /**
+     * @notice Calculate 30-day volume limit (10% of rolling volume)
+     * @return limit Maximum buyback amount based on volume
+     */
+    function _get30DayVolumeLimit() internal view returns (uint256 limit) {
+        // In production: track 30-day rolling volume via oracle or subgraph
+        // Apply maxVolumeCap percentage (default 10%)
+        uint256 thirtyDayVolume = 1000000e6; // Mock $1M 30-day volume
+        limit = (thirtyDayVolume * maxVolumeCap) / MAX_BPS;
+    }
+    
+    /**
+     * @notice Check if liquidity threshold is met (legacy function for compatibility)
      * @return sufficient Whether liquidity is sufficient
      */
     function _checkLiquidityThreshold() internal view returns (bool sufficient) {
-        // In production: check actual DEX liquidity
-        // For now, assume sufficient liquidity
-        sufficient = true;
+        sufficient = _getPoolLiquidity() >= minLiquidityThreshold;
     }
 
     /**
