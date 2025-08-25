@@ -105,6 +105,32 @@ contract StableVault4626 is ERC4626, Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Override ERC-4626 deposit to update asset balances
+     */
+    function deposit(uint256 assets, address receiver) public virtual override nonReentrant returns (uint256 shares) {
+        shares = super.deposit(assets, receiver);
+        
+        // Update asset balance tracking for primary asset
+        assetBalances[asset()] += assets;
+        totalAUM += assets;
+        
+        return shares;
+    }
+
+    /**
+     * @notice Override ERC-4626 withdraw to update asset balances
+     */
+    function withdraw(uint256 assets, address receiver, address owner) public virtual override nonReentrant returns (uint256 shares) {
+        shares = super.withdraw(assets, receiver, owner);
+        
+        // Update asset balance tracking for primary asset
+        assetBalances[asset()] -= assets;
+        totalAUM -= assets;
+        
+        return shares;
+    }
+
+    /**
      * @notice Deposit multiple stablecoins
      * @param assets Array of asset addresses
      * @param amounts Array of amounts to deposit
@@ -147,32 +173,44 @@ contract StableVault4626 is ERC4626, Ownable, ReentrancyGuard {
     /**
      * @notice Withdraw to specific stablecoin
      * @param shares Number of shares to redeem
-     * @param asset Desired stablecoin address
+     * @param requestedAsset Desired stablecoin address
      * @param receiver Address to receive assets
      * @return assets Amount of assets withdrawn
      */
     function withdrawToAsset(
         uint256 shares,
-        address asset,
+        address requestedAsset,
         address receiver
     ) external nonReentrant returns (uint256 assets) {
-        require(supportedAssets[asset], "Unsupported asset");
+        require(supportedAssets[requestedAsset], "Unsupported asset");
         require(balanceOf(msg.sender) >= shares, "Insufficient shares");
         
         assets = previewRedeem(shares);
+        address withdrawAsset = requestedAsset;
         
         // Check if we have enough of the requested asset
-        uint256 availableAsset = assetBalances[asset];
+        uint256 availableAsset = IERC20(requestedAsset).balanceOf(address(this));
         if (availableAsset < assets) {
-            // Rebalance to get more of the requested asset
-            treasuryManager.rebalanceForWithdrawal(asset, assets - availableAsset);
+            // If we don't have enough of the requested asset, use primary asset
+            withdrawAsset = asset(); // Fall back to primary asset (USDC)
+            // Ensure we have enough of the primary asset
+            uint256 primaryBalance = IERC20(withdrawAsset).balanceOf(address(this));
+            if (primaryBalance < assets) {
+                assets = primaryBalance; // Can only withdraw what we have
+            }
         }
         
         _burn(msg.sender, shares);
-        assetBalances[asset] -= assets;
+        
+        // Update asset balance tracking
+        if (assetBalances[withdrawAsset] >= assets) {
+            assetBalances[withdrawAsset] -= assets;
+        } else {
+            assetBalances[withdrawAsset] = 0;
+        }
         totalAUM -= assets;
         
-        IERC20(asset).safeTransfer(receiver, assets);
+        IERC20(withdrawAsset).safeTransfer(receiver, assets);
     }
 
     /**

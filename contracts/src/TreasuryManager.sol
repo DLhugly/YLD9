@@ -113,7 +113,8 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
      * @notice Harvest yield from all integrated protocols
      * @return totalYield Total yield harvested across all protocols
      */
-    function harvestAll() external override onlyOwner returns (uint256 totalYield) {
+    function harvestAll() external override returns (uint256 totalYield) {
+        require(msg.sender == vaultAddress || msg.sender == owner(), "Unauthorized");
         for (uint256 i = 0; i < protocolNames.length; i++) {
             string memory protocol = protocolNames[i];
             address adapter = protocolAdapters[protocol];
@@ -170,7 +171,8 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
      * @notice Legacy rebalance function with custom idle buffer
      * @param requiredIdle Minimum idle buffer to maintain
      */
-    function rebalance(uint256 requiredIdle) external override onlyOwner {
+    function rebalance(uint256 requiredIdle) external override {
+        require(msg.sender == vaultAddress || msg.sender == owner(), "Unauthorized");
         // Ensure minimum 20% idle buffer is respected
         uint256 minRequired = (totalAUM * MIN_IDLE_BUFFER) / MAX_BPS;
         uint256 actualRequired = requiredIdle > minRequired ? requiredIdle : minRequired;
@@ -201,7 +203,8 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
      * @param asset Asset to prepare for withdrawal
      * @param amount Amount needed for withdrawal
      */
-    function rebalanceForWithdrawal(address asset, uint256 amount) external override onlyOwner {
+    function rebalanceForWithdrawal(address asset, uint256 amount) external override {
+        require(msg.sender == vaultAddress || msg.sender == owner(), "Unauthorized");
         require(supportedAssets[asset], "Unsupported asset");
         
         // Find protocols with the required asset and withdraw
@@ -239,7 +242,8 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
     /**
      * @notice Emergency withdraw all funds from protocols
      */
-    function emergencyWithdraw() external override onlyOwner {
+    function emergencyWithdraw() external override {
+        require(msg.sender == vaultAddress || msg.sender == owner(), "Unauthorized");
         for (uint256 i = 0; i < protocolNames.length; i++) {
             string memory protocol = protocolNames[i];
             uint256 allocation = protocolAllocations[protocol];
