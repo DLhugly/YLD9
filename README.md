@@ -18,7 +18,7 @@ A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy
 Agonic/
 ├── README.md                     # Project overview
 ├── AGONIC_PHASE1_ROADMAP.md      # 4-8 week implementation plan
-├── AGONIC_PHASE2_APPCHAIN.md     # App chain evolution strategy  
+├── AGONIC_PHASE2_APPCHAIN.md     # L3 chain evolution strategy  
 ├── AGONIC_EXTENDED_ROADMAP.md    # Full technical specification
 ├── AGONIC_FORK_GUIDE.md          # Development setup guide
 ├── apps/stable-swap/             # Next.js foundation (will become vault UI)
@@ -162,7 +162,7 @@ Visit `http://localhost:3000` to access the current swap interface (will be adap
 
 ### **Implementation Plans**
 - **[AGONIC_PHASE1_ROADMAP.md](./AGONIC_PHASE1_ROADMAP.md)** - Day-one product: vault, treasury, bonds (4-8 weeks)  
-- **[AGONIC_PHASE2_APPCHAIN.md](./AGONIC_PHASE2_APPCHAIN.md)** - App chain evolution with proof-of-task (6-12 months)
+- **[AGONIC_PHASE2_APPCHAIN.md](./AGONIC_PHASE2_APPCHAIN.md)** - L3 chain evolution with AGN gas token (6-12 months)
 - **[AGONIC_EXTENDED_ROADMAP.md](./AGONIC_EXTENDED_ROADMAP.md)** - Complete technical specification
 - **[AGONIC_FORK_GUIDE.md](./AGONIC_FORK_GUIDE.md)** - Development setup and architecture guide
 
