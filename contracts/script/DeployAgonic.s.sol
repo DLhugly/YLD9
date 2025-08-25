@@ -8,7 +8,11 @@ import "../src/TreasuryManager.sol";
 import "../src/BondManager.sol";
 import "../src/Buyback.sol";
 import "../src/Gov.sol";
+import "../src/AttestationEmitter.sol";
 import "../src/adapters/AaveAdapter.sol";
+import "../src/adapters/WLFAdapter.sol";
+import "../src/adapters/UniswapAdapter.sol";
+import "../src/adapters/AerodromeAdapter.sol";
 
 /**
  * @title DeployAgonic
@@ -74,12 +78,29 @@ contract DeployAgonic is Script {
         Gov governance = new Gov(AGN_TOKEN);
         console.log("Governance deployed at:", address(governance));
 
-        // 8. Deploy Aave Adapter
+        // 8. Deploy AttestationEmitter
+        console.log("Deploying AttestationEmitter...");
+        AttestationEmitter attestationEmitter = new AttestationEmitter();
+        console.log("AttestationEmitter deployed at:", address(attestationEmitter));
+
+        // 9. Deploy Protocol Adapters
         console.log("Deploying AaveAdapter...");
         AaveAdapter aaveAdapter = new AaveAdapter();
         console.log("AaveAdapter deployed at:", address(aaveAdapter));
 
-        // 9. Configure contracts
+        console.log("Deploying WLFAdapter...");
+        WLFAdapter wlfAdapter = new WLFAdapter(address(treasuryManager));
+        console.log("WLFAdapter deployed at:", address(wlfAdapter));
+
+        console.log("Deploying UniswapAdapter...");
+        UniswapAdapter uniswapAdapter = new UniswapAdapter(address(treasuryManager));
+        console.log("UniswapAdapter deployed at:", address(uniswapAdapter));
+
+        console.log("Deploying AerodromeAdapter...");
+        AerodromeAdapter aerodromeAdapter = new AerodromeAdapter(address(treasuryManager));
+        console.log("AerodromeAdapter deployed at:", address(aerodromeAdapter));
+
+        // 10. Configure contracts
         console.log("Configuring contracts...");
         
         // Add supported assets to vault
@@ -91,8 +112,21 @@ contract DeployAgonic is Script {
         treasuryManager.addSupportedAsset(USD1);
         treasuryManager.addSupportedAsset(EURC);
 
-        // Update treasury manager with Aave adapter
-        treasuryManager.addProtocol("Aave", address(aaveAdapter), 6000); // 60% limit
+        // Set attestation emitter and vault address
+        treasuryManager.setAttestationEmitter(address(attestationEmitter));
+        treasuryManager.setVaultAddress(address(vault));
+
+        // Configure AttestationEmitter with authorized emitters
+        attestationEmitter.addAuthorizedEmitter(address(treasuryManager));
+        attestationEmitter.addAuthorizedEmitter(address(treasury));
+        attestationEmitter.addAuthorizedEmitter(address(buyback));
+        attestationEmitter.addAuthorizedEmitter(address(bondManager));
+
+        // Add all protocol adapters with proper types
+        treasuryManager.addProtocolWithType("Aave", address(aaveAdapter), 6000, TreasuryManager.ProtocolType.LENDING);
+        treasuryManager.addProtocolWithType("WLF", address(wlfAdapter), 4000, TreasuryManager.ProtocolType.LENDING);
+        treasuryManager.addProtocolWithType("Uniswap", address(uniswapAdapter), 3000, TreasuryManager.ProtocolType.UNISWAP_V3);
+        treasuryManager.addProtocolWithType("Aerodrome", address(aerodromeAdapter), 3000, TreasuryManager.ProtocolType.AERODROME);
 
         // Add supported assets to bond manager
         bondManager.addSupportedAsset(USDC);
@@ -115,14 +149,19 @@ contract DeployAgonic is Script {
         treasury.updateETHStakingLimit(2000); // 20% ETH staking limit
 
         console.log("Agonic v1 deployment completed!");
-        console.log("Contracts:");
+        console.log("Core Contracts:");
         console.log("- Vault:", address(vault));
         console.log("- Treasury:", address(treasury));
         console.log("- TreasuryManager:", address(treasuryManager));
         console.log("- BondManager:", address(bondManager));
         console.log("- Buyback:", address(buyback));
         console.log("- Governance:", address(governance));
+        console.log("- AttestationEmitter:", address(attestationEmitter));
+        console.log("Protocol Adapters:");
         console.log("- AaveAdapter:", address(aaveAdapter));
+        console.log("- WLFAdapter:", address(wlfAdapter));
+        console.log("- UniswapAdapter:", address(uniswapAdapter));
+        console.log("- AerodromeAdapter:", address(aerodromeAdapter));
 
         vm.stopBroadcast();
     }

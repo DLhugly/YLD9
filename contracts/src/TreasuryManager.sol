@@ -6,6 +6,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITreasuryManager.sol";
+import "./adapters/AaveAdapter.sol";
+import "./adapters/WLFAdapter.sol";
+import "./adapters/UniswapAdapter.sol";
+import "./adapters/AerodromeAdapter.sol";
+import "./AttestationEmitter.sol";
 
 /**
  * @title TreasuryManager
@@ -39,12 +44,29 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
     /// @notice Maximum basis points
     uint256 public constant MAX_BPS = 10000;
     
+    /// @notice AttestationEmitter for transparency events
+    AttestationEmitter public attestationEmitter;
+    
+    /// @notice Vault address for yield forwarding
+    address public vaultAddress;
+    
+    /// @notice Protocol type mapping (for different adapter interfaces)
+    mapping(string => ProtocolType) public protocolTypes;
+    
+    /// @notice Protocol types for different adapter interfaces
+    enum ProtocolType {
+        LENDING,    // Aave, WLF (single asset)
+        UNISWAP_V3, // Uniswap V3 (dual asset LP)
+        AERODROME   // Aerodrome (dual asset LP)
+    }
+    
     /// @notice Events
     event ProtocolAdded(string name, address adapter, uint256 limit);
     event ProtocolUpdated(string name, address adapter, uint256 limit);
     event Rebalanced(string protocol, uint256 oldAllocation, uint256 newAllocation);
     event YieldHarvested(string protocol, uint256 amount);
     event EmergencyWithdrawal(string protocol, uint256 amount);
+    event AttestationEmitterUpdated(address indexed newEmitter);
 
     constructor() Ownable(msg.sender) {
         // Initialize with Base L2 protocol limits from roadmap
@@ -296,5 +318,145 @@ contract TreasuryManager is ITreasuryManager, Ownable, ReentrancyGuard {
      */
     function updateTotalAUM(uint256 newAUM) external onlyOwner {
         totalAUM = newAUM;
+    }
+
+    /**
+     * @notice Set attestation emitter for transparency events
+     * @param emitter AttestationEmitter contract address
+     */
+    function setAttestationEmitter(address emitter) external onlyOwner {
+        require(emitter != address(0), "Invalid emitter");
+        attestationEmitter = AttestationEmitter(emitter);
+        emit AttestationEmitterUpdated(emitter);
+    }
+
+    /**
+     * @notice Set vault address for yield forwarding
+     * @param vault Vault contract address
+     */
+    function setVaultAddress(address vault) external onlyOwner {
+        require(vault != address(0), "Invalid vault");
+        vaultAddress = vault;
+    }
+
+    /**
+     * @notice Add protocol adapter with type specification
+     * @param name Protocol name
+     * @param adapter Adapter contract address
+     * @param limitBps Allocation limit in basis points
+     * @param protocolType Type of protocol adapter
+     */
+    function addProtocolWithType(
+        string calldata name,
+        address adapter,
+        uint256 limitBps,
+        ProtocolType protocolType
+    ) external onlyOwner {
+        require(adapter != address(0), "Invalid adapter");
+        require(limitBps <= MAX_BPS, "Invalid limit");
+        require(protocolAdapters[name] == address(0), "Protocol already exists");
+
+        protocolNames.push(name);
+        protocolAdapters[name] = adapter;
+        protocolLimits[name] = limitBps;
+        protocolTypes[name] = protocolType;
+
+        emit ProtocolAdded(name, adapter, limitBps);
+    }
+
+    /**
+     * @notice Harvest yield from specific protocol
+     * @param protocolName Name of protocol to harvest from
+     * @param asset Asset to harvest (for lending protocols)
+     * @return yieldAmount Amount of yield harvested
+     */
+    function harvestFromProtocol(
+        string calldata protocolName,
+        address asset
+    ) external returns (uint256 yieldAmount) {
+        require(msg.sender == vaultAddress || msg.sender == owner(), "Unauthorized");
+        
+        address adapter = protocolAdapters[protocolName];
+        require(adapter != address(0), "Protocol not found");
+        
+        ProtocolType pType = protocolTypes[protocolName];
+        
+        if (pType == ProtocolType.LENDING) {
+            // For Aave and WLF adapters
+            if (keccak256(bytes(protocolName)) == keccak256(bytes("Aave"))) {
+                yieldAmount = AaveAdapter(adapter).harvest();
+            } else if (keccak256(bytes(protocolName)) == keccak256(bytes("WLF"))) {
+                yieldAmount = WLFAdapter(adapter).claimYield(asset);
+            }
+        }
+        // LP protocols handle yield differently - fees are auto-compounded
+        
+        if (yieldAmount > 0 && address(attestationEmitter) != address(0)) {
+            attestationEmitter.emitYieldHarvested(adapter, asset, yieldAmount, 0, yieldAmount);
+        }
+        
+        emit YieldHarvested(protocolName, yieldAmount);
+    }
+
+    /**
+     * @notice Get protocol APY for asset
+     * @param protocolName Name of protocol
+     * @param asset Asset address (or token0 for LP protocols)
+     * @param asset1 Second asset for LP protocols (use address(0) for lending)
+     * @return apy Current APY (scaled by 1e18)
+     */
+    function getProtocolAPY(
+        string calldata protocolName,
+        address asset,
+        address asset1
+    ) external view returns (uint256 apy) {
+        address adapter = protocolAdapters[protocolName];
+        require(adapter != address(0), "Protocol not found");
+        
+        ProtocolType pType = protocolTypes[protocolName];
+        
+        if (pType == ProtocolType.LENDING) {
+            if (keccak256(bytes(protocolName)) == keccak256(bytes("Aave"))) {
+                apy = AaveAdapter(adapter).getCurrentAPY(asset);
+            } else if (keccak256(bytes(protocolName)) == keccak256(bytes("WLF"))) {
+                apy = WLFAdapter(adapter).getCurrentAPY(asset);
+            }
+        } else if (pType == ProtocolType.UNISWAP_V3) {
+            apy = UniswapAdapter(adapter).getCurrentAPY(asset, asset1);
+        } else if (pType == ProtocolType.AERODROME) {
+            apy = AerodromeAdapter(adapter).getCurrentAPY(asset, asset1);
+        }
+    }
+
+    /**
+     * @notice Get all protocol information
+     * @return protocols Array of protocol information
+     */
+    function getAllProtocolInfo() external view returns (ProtocolInfo[] memory protocols) {
+        protocols = new ProtocolInfo[](protocolNames.length);
+        
+        for (uint256 i = 0; i < protocolNames.length; i++) {
+            string memory name = protocolNames[i];
+            protocols[i] = ProtocolInfo({
+                name: name,
+                adapter: protocolAdapters[name],
+                protocolType: protocolTypes[name],
+                limitBps: protocolLimits[name],
+                currentAllocation: protocolAllocations[name],
+                isActive: protocolAdapters[name] != address(0)
+            });
+        }
+    }
+
+    /**
+     * @notice Protocol information struct
+     */
+    struct ProtocolInfo {
+        string name;
+        address adapter;
+        ProtocolType protocolType;
+        uint256 limitBps;
+        uint256 currentAllocation;
+        bool isActive;
     }
 }
