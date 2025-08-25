@@ -68,4 +68,30 @@ interface ITreasury {
      * @param amount New outstanding amount
      */
     function updateOutstandingATN(uint256 amount) external;
+
+    /**
+     * @notice Transfer AGN for LP staking rewards
+     * @param to Recipient address
+     * @param amount AGN amount to transfer
+     */
+    function transferAGNForRewards(address to, uint256 amount) external;
+
+    /**
+     * @notice Calculate current TPT (Treasury per Token) value
+     * @return tptValue TPT in USDC per AGN (scaled by 1e18)
+     * @return totalValue Total treasury value in USDC
+     * @return supply Circulating AGN supply
+     */
+    function calculateTPT() external view returns (uint256 tptValue, uint256 totalValue, uint256 supply);
+
+    /**
+     * @notice Publish weekly TPT metric
+     */
+    function publishTPT() external;
+
+    /**
+     * @notice Get total treasury value in USDC
+     * @return totalValue Total value including stablecoins and ETH
+     */
+    function getTotalTreasuryValue() external view returns (uint256 totalValue);
 }

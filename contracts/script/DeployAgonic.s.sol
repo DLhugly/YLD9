@@ -207,7 +207,7 @@ contract DeployAgonic is Script {
         console.log("- LPStaking:", address(lpStaking));
         console.log("- POLManager:", address(polManager));
         console.log("- KeeperRegistry:", address(keeperRegistry));
-        console.log("\\n✅ Ready for Phase 1 launch on Base L2!");
+        console.log("\\nReady for Phase 1 launch on Base L2!");
 
         vm.stopBroadcast();
     }

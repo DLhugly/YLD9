@@ -187,6 +187,23 @@ contract BondManager is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Pay coupons for all active tranches (called by keeper)
+     */
+    function payAllCoupons() external onlyOwner {
+        for (uint256 i = 1; i < nextTrancheId; i++) {
+            TrancheInfo storage info = trancheInfo[i];
+            if (info.active && !info.matured && block.timestamp < info.maturityTime) {
+                try this.payCoupons(i) {
+                    // Coupon payment succeeded
+                } catch {
+                    // Continue to next tranche if one fails
+                    continue;
+                }
+            }
+        }
+    }
+
+    /**
      * @notice Redeem matured ATN notes
      * @param trancheId Tranche ID to redeem from
      * @param amount Amount to redeem

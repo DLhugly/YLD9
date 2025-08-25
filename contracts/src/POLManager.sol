@@ -448,9 +448,24 @@ contract POLManager is Ownable, ReentrancyGuard {
      * @notice Emergency withdraw all LP tokens (owner only)
      */
     function emergencyWithdraw() external onlyOwner {
-        if (totalLPTokens > 0) {
-            removeLiquidity(totalLPTokens);
-            emit EmergencyWithdraw(totalLPTokens);
+        uint256 lpTokensToWithdraw = totalLPTokens;
+        if (lpTokensToWithdraw > 0) {
+            // Unstake from gauge if needed
+            if (aerodromeGauge != address(0)) {
+                // In production: call gauge.withdraw(lpTokensToWithdraw)
+            }
+            
+            // Remove liquidity from pool
+            (uint256 agnReceived, uint256 usdcReceived) = _removeLiquidityFromPool(lpTokensToWithdraw);
+            
+            // Update tracking
+            totalLPTokens = 0;
+            
+            // Send tokens to treasury
+            AGN.safeTransfer(address(treasury), agnReceived);
+            USDC.safeTransfer(address(treasury), usdcReceived);
+            
+            emit EmergencyWithdraw(lpTokensToWithdraw);
         }
     }
 

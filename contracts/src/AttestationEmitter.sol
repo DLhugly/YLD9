@@ -101,6 +101,15 @@ contract AttestationEmitter is Ownable {
         uint256 timestamp
     );
 
+    /// @notice Events for POL (Protocol-Owned Liquidity) operations
+    event POLUpdate(
+        uint256 agnAmount,
+        uint256 usdcAmount,
+        uint256 lpTokens,
+        uint256 poolOwnership,
+        uint256 timestamp
+    );
+
     /// @notice Events for safety gate status changes
     event SafetyGateStatusChanged(
         bool runwayOK,
@@ -301,6 +310,19 @@ contract AttestationEmitter is Ownable {
         address updater
     ) external onlyAuthorized {
         emit ParameterUpdated(parameter, oldValue, newValue, updater, block.timestamp);
+    }
+
+    /**
+     * @notice Emit POL update event
+     */
+    function emitPOLUpdate(
+        uint256 agnAmount,
+        uint256 usdcAmount,
+        uint256 lpTokens,
+        uint256 poolOwnership,
+        uint256 timestamp
+    ) external onlyAuthorized {
+        emit POLUpdate(agnAmount, usdcAmount, lpTokens, poolOwnership, timestamp);
     }
 
     /**

@@ -17,6 +17,8 @@
     "test:contracts": "cd contracts && forge test",
     "deploy:local": "cd contracts && forge script script/DeployAgonic.s.sol --fork-url http://localhost:8545 --broadcast",
     "deploy:base-sepolia": "cd contracts && forge script script/DeployAgonic.s.sol --rpc-url base_sepolia --broadcast --verify",
+    "generate:contracts": "node scripts/generateContracts.js",
+    "generate": "npm run build:contracts && npm run generate:contracts",
     "dev": "cd frontend && npm run dev",
     "start": "npm run dev",
     "clean": "cd contracts && forge clean && cd ../frontend && rm -rf .next node_modules"

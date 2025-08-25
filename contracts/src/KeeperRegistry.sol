@@ -126,7 +126,7 @@ contract KeeperRegistry is Ownable, ReentrancyGuard {
         bool success = false;
         string memory failureReason = "";
         
-        try treasury.weeklyDCA() {
+        try treasury.weeklyDCA(weeklyDCACap) {
             success = true;
             lastWeeklyDCA = block.timestamp;
         } catch Error(string memory reason) {
@@ -349,7 +349,7 @@ contract KeeperRegistry is Ownable, ReentrancyGuard {
             if (block.timestamp < lastBuyback + WEEKLY_INTERVAL) {
                 return (false, "Too early for buyback");
             }
-            (bool canExecute,,,) = buyback.getSafetyGateStatus();
+            (bool canExecute,,,,) = buyback.getSafetyGateStatus();
             if (!canExecute) return (false, "Safety gates not green");
             return (true, "");
             
