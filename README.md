@@ -16,41 +16,78 @@ A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy
 ## **Repository Structure**
 
 ```
-Agonic/
-├── README.md                     # Project overview
-├── AGONIC_PHASE1_ROADMAP.md      # 4-8 week implementation plan
-├── AGONIC_PHASE2_APPCHAIN.md     # L3 chain evolution strategy  
-├── AGONIC_EXTENDED_ROADMAP.md    # Full technical specification
-├── AGONIC_FORK_GUIDE.md          # Development setup guide
-├── apps/stable-swap/             # Next.js foundation (will become vault UI)
-│   ├── package.json             # Dependencies: React 19, Next.js 15, viem, wagmi
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── page.tsx         # Main dashboard with SwapCard
-│   │   │   ├── layout.tsx       # App layout and metadata
-│   │   │   ├── globals.css      # Tailwind CSS styles
-│   │   │   └── api/             # Server-side API routes
-│   │   │       ├── quote/route.ts    # Best route selection (Uniswap v3 vs Aerodrome)
-│   │   │       └── fx/
-│   │   │           ├── implied/route.ts  # Implied EUR/USD from EURC/USDC pools
-│   │   │           └── trigger/route.ts  # Placeholder for FX triggers
-│   │   ├── components/
-│   │   │   └── SwapCard.tsx     # Swap interface component
-│   │   ├── lib/                 # Core business logic
-│   │   │   ├── viem.ts         # Viem client for Base L2
-│   │   │   ├── config.ts       # Environment-driven configuration
-│   │   │   ├── tokens.ts       # Token metadata (USDC, EURC, USD1)
-│   │   │   ├── math.ts         # BPS calculations and decimal helpers
-│   │   │   ├── slippage.ts     # Slippage modeling and minOut calculation
-│   │   │   └── venues/         # DEX integrations
-│   │   │       ├── univ3.ts    # Uniswap v3 QuoterV2 + Universal Router
-│   │   │       └── aerodrome.ts # Aerodrome Solidly-style router
-│   │   └── state/
-│   │       └── telemetry.ts    # Trade execution logging
-└── contracts/
-    └── src/
-        └── RouterExecutor.sol   # Minimal swap executor with fee collection
+agonic/
+├── README.md                    # This file
+├── AGONIC_*.md                  # Planning documents and roadmaps
+├── package.json                 # Monorepo scripts and workspace config
+├── contracts/                   # 🔥 Smart contracts (Foundry)
+│   ├── src/                    # Agonic v1 contracts
+│   │   ├── StableVault4626.sol # Multi-stablecoin ERC-4626 vault
+│   │   ├── Treasury.sol        # ETH accumulation + DCA + FX arbitrage
+│   │   ├── TreasuryManager.sol # Multi-protocol rebalancing
+│   │   ├── BondManager.sol     # ATN bond issuance
+│   │   ├── ATNTranche.sol      # Individual bond tranches
+│   │   ├── Buyback.sol         # Weekly TWAP buybacks
+│   │   ├── Gov.sol             # Dual governance (AGN + LP stakers)
+│   │   └── adapters/           # Protocol integrations
+│   ├── script/                 # Deployment scripts
+│   ├── test/                   # Contract tests
+│   └── foundry.toml            # Foundry configuration
+├── frontend/                    # 🔥 Next.js dapp
+│   ├── app/                    # Next.js 13+ app directory
+│   │   ├── page.tsx            # ETH Treasury Fortress dashboard
+│   │   └── api/                # Backend API routes
+│   ├── components/             # React components
+│   │   ├── VaultCard.tsx       # Multi-stablecoin vault interface
+│   │   ├── TreasuryChart.tsx   # ETH accumulation visualization
+│   │   └── scaffold-eth/       # Scaffold-ETH components
+│   ├── lib/                    # Shared utilities (from StableSwap)
+│   │   ├── venues/             # DEX integrations
+│   │   ├── tokens.ts           # Token metadata
+│   │   └── math.ts             # BPS calculations
+│   └── package.json            # Frontend dependencies
+├── docs/                       # Documentation
+│   └── UI_FRONTEND.md          # Frontend design specification
+└── legacy/                     # Reference code from StableSwap fork
+    ├── apps/stable-swap/       # Original StableSwap frontend
+    ├── contracts/              # Original RouterExecutor.sol
+    └── agonic-dapp/            # Unused Scaffold-ETH clone
 ```
+
+## **Quick Start**
+
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
+
+2. **Build Contracts**:
+   ```bash
+   npm run build:contracts
+   ```
+
+3. **Test Contracts**:
+   ```bash
+   npm run test:contracts
+   ```
+
+4. **Start Frontend**:
+   ```bash
+   npm run dev
+   ```
+
+5. **Deploy to Base Sepolia**:
+   ```bash
+   npm run deploy:base-sepolia
+   ```
+
+## **Implementation Status**
+
+✅ **Complete Agonic v1 Implementation**
+- **Smart Contracts**: Multi-stablecoin vault, ETH treasury, ATN bonds, buyback mechanism, dual governance
+- **Frontend**: ETH Treasury Fortress dashboard with yield simulator and treasury visualization
+- **Architecture**: Clean monorepo structure with Foundry + Next.js
+- **Ready for**: Base L2 testnet deployment and conservative launch
 
 ## **Core Features (MVP)**
 

@@ -1,0 +1,39 @@
+{
+  "name": "agonic",
+  "version": "1.0.0",
+  "description": "Agonic - Stable Yield Vault with ETH Treasury",
+  "private": true,
+  "workspaces": [
+    "contracts",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build:contracts && npm run build:frontend",
+    "build:contracts": "cd contracts && forge build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "npm run test:contracts",
+    "test:contracts": "cd contracts && forge test",
+    "deploy:local": "cd contracts && forge script script/DeployAgonic.s.sol --fork-url http://localhost:8545 --broadcast",
+    "deploy:base-sepolia": "cd contracts && forge script script/DeployAgonic.s.sol --rpc-url base_sepolia --broadcast --verify",
+    "dev": "cd frontend && npm run dev",
+    "start": "npm run dev",
+    "clean": "cd contracts && forge clean && cd ../frontend && rm -rf .next"
+  },
+  "keywords": [
+    "defi",
+    "vault",
+    "ethereum",
+    "base-l2",
+    "stablecoin",
+    "treasury",
+    "buyback"
+  ],
+  "author": "Agonic Protocol",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
+  }
+}
