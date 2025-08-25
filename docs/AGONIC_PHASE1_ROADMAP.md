@@ -19,9 +19,9 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 ### 1.2 Protocol flywheel (your TIP-11 merged)
 
 1. **Net Yield → Buybacks:** **40% of Net Yield (NY)** becomes the *Buyback Pool* (BP) **when safety gates are green**.
-2. **Buyback Split:** **50% burn / 50% to Treasury** (treasury-held AGN = long-term alignment).
-3. **LP staking later:** single-sided staking is **retired**; LP staking (AGN/ETH, AGN/USDC) comes **after** launch via AIP with tight caps.
-4. **POL & Bonding:** once KPIs are stable, enable bonding to grow protocol-owned liquidity. **Target ≥33%** of main LP positions owned by Treasury.
+2. **Buyback-and-Burn Flywheel:** **50% immediate AGN burn** (deflationary) + **50% POL Bond funding** (OHM-style bonding mechanism).
+3. **POL Bonds (Primary):** Users deposit stablecoins → receive discounted AGN + POL LP tokens. Treasury uses proceeds for liquidity provision, capturing **100% of trading fees** from owned positions.
+4. **Continuous Fee Capture:** Treasury targets **≥33% ownership** of AGN/USDC and AGN/ETH pools, generating sustainable trading fee revenue that funds more buybacks and bonds.
 
 ---
 
@@ -43,14 +43,14 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ### 2.2 $AGN value drivers (no promises, just mechanics)
 
-1. **Programmatic Buybacks:** 40% of NY (when gates OK) buys AGN via TWAP/split orders → **50% burn / 50% treasury**.
-2. **Treasury Backing Metric:** publish **Treasury per Token (TPT)** weekly (purely informational).
-3. **Utility (non-rev share):**
-   - Govern the **three scarce knobs**: feeBps, weekly DCA cap, buyback policy.
-   - **Priority access** & better limits on ATN subscriptions.
-   - **LP staking rewards** (once enabled) and **bonding discounts** (later).
-   - **Protocol voting power** over venue caps/safety lights.
-4. **Supply:** **Fixed cap** (e.g., **200M AGN**). No emissions v1. Incentives (if any) come from **treasury-held AGN** via AIP.
+1. **Continuous Buyback-and-Burn:** 40% of NY (when gates OK) → **50% immediate burn** (reduces circulating supply) + **50% POL Bond funding** (grows treasury-owned liquidity).
+2. **POL Trading Fee Compounding:** Treasury-owned LP positions generate trading fees → reinvested into more buybacks → more burns → higher scarcity.
+3. **Treasury per Token (TPT) Growth:** Weekly TPT metric tracks (Treasury Value ÷ Circulating Supply). Burns reduce denominator, ETH accumulation grows numerator.
+4. **AGN Utility (Zero Inflation):**
+   - **Governance Locking:** Lock AGN for vote weight on protocol parameters
+   - **Bond Priority:** Locked AGN gets better POL Bond allocations and rates
+   - **Vault Perks:** Fee rebates and yield multipliers for AGN lockers
+5. **Deflationary Supply:** **Fixed 200M cap, no emissions ever.** Only burns (supply decreases) and POL bond incentives (treasury grows).
 
 ---
 
@@ -75,10 +75,10 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 | CR minimum          | **1.2×**                                                                                     |
 | POL target          | **≥33%** of main LP positions (future)                                                       |
 | ATN-01 tranche      | Cap **$250k**; **8% APR** weekly coupons; **6-month** term; non-transferable until maturity |
-| LP staking pool     | Aerodrome **AGN/USDC** only (v1)                                                            |
-| LP rewards budget   | **1000 AGN/week** from treasury (no minting)                                               |
-| LP pool cap         | **$500K** TVL max                                                                           |
+| POL target pools    | Aerodrome **AGN/USDC** and **AGN/ETH** for maximum fee capture                             |
 | POL daily budget    | **$10K** max add per day                                                                    |
+| POL Bond discount   | **5-15%** discount on AGN for bond depositors                                              |
+| POL Bond vesting    | **7-day linear vesting** for received AGN                                                  |
 | Keeper provider     | **Gelato** on Base (Chainlink backup)                                                       |
 | TPT publish freq    | **Weekly** via AttestationEmitter                                                           |
 
@@ -96,11 +96,12 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, **ETH staking integration**, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()` + `stakeETH()`. **Computes and publishes TPT metric weekly**.
 5. **BondManager.sol + ATNTranche.sol** — fixed-APR multi-stablecoin notes; `subscribe/payCoupons/redeem`; **hard-enforced CR ≥ 1.2× gate** for issuance and coupons.
 6. **Buyback.sol** — **Weekly** TWAP/split orders with **hard-enforced safety gates** (runway ≥6m, CR ≥1.2×, liquidity ≥$50K, volume ≤10% 30d); splits **50/50 burn/treasury**.
-7. **Gov.sol** — AGN holder + LP staker governance; LP stakers can vote on protocol integrations and high-risk strategies.
+7. **Gov.sol** — AGN holder governance with time-weighted voting; locked AGN gets higher vote weight for protocol parameter decisions.
 8. **AttestationEmitter.sol** — emits strategy performance and rebalancing events for full transparency.
-9. **LPStaking.sol** — Aerodrome AGN/USDC LP rewards; treasury-funded AGN emissions (no minting); per-pool caps and weekly budget.
-10. **POLManager.sol** — Protocol-owned liquidity for AGN/USDC; sources from treasury AGN + stable yield; targets ≥33% pool ownership.
-11. **KeeperRegistry.sol** — Gelato/Chainlink automation registry for weekly ops with dry-run simulations.
+9. **AGNStaking.sol** — Governance locking for vote weight; locked AGN gets priority bond access, vault fee rebates, and yield multipliers (no token emissions).
+10. **POLBondManager.sol** — OHM-style bonding mechanism; users deposit stablecoins → receive discounted AGN + POL LP tokens; proceeds fund treasury liquidity positions.
+11. **POLManager.sol** — Protocol-owned liquidity for AGN/USDC and AGN/ETH; captures 100% of trading fees; targets ≥33% pool ownership for maximum fee generation.
+12. **KeeperRegistry.sol** — Gelato/Chainlink automation registry for weekly ops with dry-run simulations.
 
 ---
 
@@ -132,7 +133,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ## 6) Dashboard (must-have tiles)
 
-1. **Your position:** shares, earned yield by stablecoin, ETH Boost toggle, **personalized yield simulator** (deposit amount → projected monthly yield + ETH boost split using real-time APY from `quote/route.ts`), LP staking status (if applicable).
+1. **Your position:** shares, earned yield by stablecoin, ETH Boost toggle, **personalized yield simulator** (deposit amount → projected monthly yield + ETH boost split using real-time APY from `quote/route.ts`), AGN governance lock status and perks.
 2. **Vault:** Total TVL by asset (USDC/USD1/EURC); protocol allocation breakdown (Aave/WLF/Uniswap/Aerodrome); idle % by stablecoin; realized net APY per protocol.
 3. **Treasury:** ETH reserve over time; **staked ETH rewards**; **BuyEthExecuted** + **FXArbitrageExecuted** logs with routing details; **automated FX thresholds** status.
 4. **ATN:** outstanding principal by stablecoin; next coupon date/amount; coupons paid; **CR**.

@@ -28,8 +28,8 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 ### 1.2 Token Flywheel (TIP-11 merged)
 1. **40% of Net Yield (NY)** → **Buyback Pool** (BP), when safety gates are green.
 2. **Buyback Split:** **50% burn / 50% to treasury** (treasury-held AGN = long-term alignment).
-3. **LP staking later**: single-sided staking is **retired**; **LP staking** (AGN/ETH, AGN/USDC) can be enabled by AIP after launch with strict emission caps.
-4. **POL & bonding later**: grow protocol-owned liquidity after KPIs are stable.
+3. **POL Bonds (Primary)**: OHM-style bonding mechanism where users deposit stablecoins → receive discounted AGN + POL LP exposure. **Zero token emissions ever**.
+4. **Continuous Buyback-and-Burn**: 50% of buyback pool immediately burns AGN (deflationary) + 50% funds POL bonds (treasury growth).
 
 ---
 
@@ -47,7 +47,7 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 
 ### 2.3 $AGN value drivers (mechanical, not promises)
 1. Programmatic buybacks (40% of NY; gates on) via **TWAP/split orders** → **50% burn / 50% treasury**.  
-2. **Governance utility** over three scarce knobs; potential **priority ATN access**; **LP staking rewards/bonding discounts** later.  
+2. **Governance utility** with time-weighted voting; **priority POL Bond access**; **vault fee rebates** and **yield multipliers** for locked AGN holders.  
 3. **TPT (Treasury-per-Token)** published weekly (informational transparency metric).  
 4. **Fixed supply** (e.g., 200M AGN). No emissions v1; incentives (if any) come from treasury-held AGN via AIP.
 
@@ -67,9 +67,9 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 | FX arbitrage | Enabled for EURC/USDC/USD1 pairs |
 | FX arbitrage threshold | **0.1%** minimum deviation for automatic execution |
 | ETH staking allocation | **≤20%** of treasury ETH via Lido/Rocket Pool |
-| Buyback pool | **40% of NY** (gated, includes FX profits + staking rewards) |
+| Buyback mechanism | **40% of NY** → **50% burn + 50% POL bonds** (includes FX profits + staking rewards) |
 | Buyback split | **50% burn / 50% treasury** |
-| LP governance | LP stakers vote on high-risk strategies |
+| POL target ownership | **≥33%** of AGN/USDC and AGN/ETH pools for maximum fee capture |
 | CR minimum | **1.2×** (multi-asset treasury) |
 | ATN-01 tranche | **$250k** cap; **8% APR**; **6m** term; multi-stablecoin; non-transferable |
 

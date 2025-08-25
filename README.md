@@ -8,10 +8,11 @@ A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy
 ## **Key Features**
 1. **Multi-Stablecoin ERC-4626 Vault** - Conservative yield across USDC, USD1, EURC with automated protocol rebalancing (Aave, WLF, Uniswap V3, Aerodrome)
 2. **ETH Treasury Accumulation** - Weekly DCA purchases funded by protocol fees + **automated FX arbitrage** + **ETH staking rewards**
-3. **AGN Buyback Mechanism** - 40% of net yield → programmatic buybacks (gated by safety controls)
-4. **Agonic Treasury Notes (ATN)** - Fixed-APR multi-stablecoin bonds to accelerate ETH accumulation
-5. **Personalized Yield Simulator** - Interactive frontend tools for deposit modeling and "what-if" scenarios
-6. **Built on StableSwap** - Proven multi-venue routing and Base L2 optimization
+3. **Buyback-and-Burn Flywheel** - 40% of net yield → **50% immediate AGN burn** + **50% POL Bond funding** (OHM-style mechanism)
+4. **POL Bonds** - OHM-style bonding mechanism: deposit stablecoins → receive discounted AGN + POL LP exposure
+5. **Agonic Treasury Notes (ATN)** - Fixed-APR multi-stablecoin bonds to accelerate ETH accumulation
+6. **Personalized Yield Simulator** - Interactive frontend tools for deposit modeling and "what-if" scenarios
+7. **Built on StableSwap** - Proven multi-venue routing and Base L2 optimization
 
 ## **Repository Structure**
 
@@ -209,11 +210,12 @@ Visit `http://localhost:3000` to access the current swap interface (will be adap
 - **[AGONIC_FORK_GUIDE.md](./AGONIC_FORK_GUIDE.md)** - Development setup and architecture guide
 
 ### **Key Parameters (Phase 1)**
-1. **Vault Asset:** USDC (Base L2)
+1. **Vault Assets:** USDC, USD1, EURC (Base L2)
 2. **Fee on Yield:** 12% (never on principal)  
 3. **Weekly DCA Cap:** $5,000 USDC → ETH
-4. **Buyback Allocation:** 40% of net yield (gated by safety controls)
-5. **Safety Gates:** 6-month runway + 1.2× coverage ratio
+4. **Buyback Mechanism:** 40% of net yield → **50% burn + 50% POL bonds**
+5. **POL Target:** ≥33% ownership of AGN/USDC and AGN/ETH pools
+6. **Safety Gates:** 6-month runway + 1.2× coverage ratio + 20% idle buffer
 
 ## **License**
 MIT License - see LICENSE file for details
