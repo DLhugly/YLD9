@@ -11,19 +11,20 @@ This creates a **much more compelling long-term vision** while keeping the near-
 
 ### **Vault Operations = Native Chain Primitives**
 
-Instead of expensive L2 operations, **vault management becomes native L3 functionality:**
+Instead of expensive L2 operations, **multi-protocol treasury management becomes native L3 functionality:**
 
 1. **L3 Sequencer Benefits:**
-   1. Ultra-cheap vault transactions (<$0.001 gas)
-   2. AGN required for all L3 transactions
-   3. Custom precompiles for vault operations
-   4. MEV from vault operations captured by protocol
+   1. Ultra-cheap vault transactions (<$0.001 gas) across all protocols
+   2. AGN required for all L3 transactions (rebalancing, FX arbitrage, governance)
+   3. Custom precompiles for multi-asset vault operations and FX routing
+   4. MEV from vault rebalancing and FX arbitrage captured by protocol
 
-2. **Native Vault Operations:**
-   1. Deposit/withdraw as L3 system transactions
-   2. Harvest calls cost essentially nothing
-   3. DCA execution with atomic L2 bridge calls
-   4. Buybacks executed with zero slippage on L3
+2. **Native Treasury Operations:**
+   1. Multi-stablecoin deposit/withdraw as L3 system transactions
+   2. Protocol rebalancing (Aave↔WLF↔Uniswap↔Aerodrome) costs essentially nothing
+   3. FX arbitrage execution (EURC/USDC/USD1) with atomic settlement
+   4. ETH DCA with atomic L2 bridge calls optimized for best execution
+   5. LP governance voting and AGN buybacks with zero gas friction
 
 3. **Economic Alignment:**
    1. More L3 usage = more AGN gas demand
@@ -45,10 +46,12 @@ Current AGONIC_PHASE1_ROADMAP → UNCHANGED
 ```
 Enhanced Architecture:
 ├── agonic-l3/                 # OP Stack L3 or Arbitrum Orbit chain
-│   ├── contracts/             # Vault operations optimized for L3
-│   ├── treasury/              # ETH DCA with ultra-low gas costs  
-│   ├── bonds/                 # ATN managed natively on L3
-│   └── governance/            # AIP governance with L3 economics
+│   ├── multi-asset-vault/     # Native USDC/USD1/EURC vault operations
+│   ├── protocol-integrations/ # Aave, WLF, Uniswap, Aerodrome adapters
+│   ├── fx-engine/            # Native FX arbitrage and routing system
+│   ├── treasury/             # Multi-stablecoin treasury with ETH DCA  
+│   ├── bonds/                # ATN multi-asset notes managed natively
+│   └── governance/           # LP staker + AGN holder governance with L3 economics
 ├── bridge/                    # Base L2 ↔ Agonic L3
 └── migration-tools/           # User asset migration utilities
 ```
@@ -92,11 +95,14 @@ Revenue Model:
 ### **User Experience Improvements**
 
 **On Agonic L3:**
-1. ✅ **Ultra-low gas costs** (<$0.001 per transaction)
-2. ✅ **Instant settlement** (~1s blocks)
-3. ✅ **Native governance** (AIP voting on L3)
-4. ✅ **Seamless bridging** (Base L2 ↔ Agonic L3)
-5. ✅ **MEV protection** (sequencer aligned with protocol)
+1. ✅ **Ultra-low gas costs** (<$0.001 per transaction across all protocols)
+2. ✅ **Instant settlement** (~1s blocks for rebalancing and FX arbitrage)
+3. ✅ **Native multi-asset operations** (USDC/USD1/EURC seamlessly managed)
+4. ✅ **Real-time protocol switching** (Aave↔WLF↔Uniswap↔Aerodrome with no friction)
+5. ✅ **Native FX arbitrage** (EURC/USD1 opportunities captured instantly)
+6. ✅ **Dual governance** (AGN holders + LP stakers voting on L3)
+7. ✅ **Seamless bridging** (Base L2 ↔ Agonic L3 for all supported assets)
+8. ✅ **MEV protection** (sequencer captures arbitrage value for protocol treasury)
 
 ## Implementation Timeline
 

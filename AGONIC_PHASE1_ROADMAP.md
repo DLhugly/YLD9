@@ -10,16 +10,17 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ### 1.1 User experience
 
-1. **sUSD Vault (ERC-4626 / USDC only):** deposit/withdraw; we farm a **single, conservative** Base venue (no leverage).
-2. **ETH Reserve Transparency:** the Treasury DCA-buys ETH weekly; every trade logged on-chain & in the dashboard.
-3. **"ETH Boost" (optional):** depositors can take a slice of *their yield* in ETH (principal stays in USDC).
-4. **Agonic Treasury Notes (ATN):** fixed-APR USDC notes (non-transferable until maturity) to accelerate ETH accumulation.
+1. **Multi-Stablecoin Vault (ERC-4626):** deposit/withdraw USDC, USD1, EURC; automated rebalancing across **proven Base protocols** (Aave, WLF, Uniswap V3, Aerodrome) with allocation caps.
+2. **ETH Reserve Transparency:** the Treasury DCA-buys ETH weekly via optimal routing; every trade and rebalancing action logged on-chain & in the dashboard.
+3. **"ETH Boost" (optional):** depositors can take a slice of *their yield* in ETH (principal stays in stablecoins).
+4. **FX Arbitrage Integration:** capture basis differentials across EURC/USDC/USD1 pairs to enhance vault yield.
+5. **Agonic Treasury Notes (ATN):** fixed-APR multi-stablecoin notes (non-transferable until maturity) to accelerate ETH accumulation.
 
 ### 1.2 Protocol flywheel (your TIP-11 merged)
 
 1. **Net Yield → Buybacks:** **40% of Net Yield (NY)** becomes the *Buyback Pool* (BP) **when safety gates are green**.
 2. **Buyback Split:** **50% burn / 50% to Treasury** (treasury-held AGN = long-term alignment).
-3. **LP staking later:** single-sided staking is **retired**; LP staking (AGN/ETH, AGN/USDC) comes **after** launch via AIP with tight caps. **Optional ve-style boosts** (longer locks → higher rewards) for enhanced tokenomics.
+3. **LP staking later:** single-sided staking is **retired**; LP staking (AGN/ETH, AGN/USDC) comes **after** launch via AIP with tight caps.
 4. **POL & Bonding:** once KPIs are stable, enable bonding to grow protocol-owned liquidity. **Target ≥33%** of main LP positions owned by Treasury.
 
 ---
@@ -30,7 +31,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 1. **Two ETH inflows:**
    - A portion of **protocol fees on yield** (not principal).
-   - **ATN bond proceeds** (100% routed to ETH DCA per AIP-02).
+   - **ATN bond proceeds** (100% routed to ETH DCA automatically).
 2. **Runway first:** keep ≥ **6 months OPEX** in USDC before any DCA or buybacks.
 3. **Coverage Ratio (CR) guard:**
 
@@ -47,7 +48,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 3. **Utility (non-rev share):**
    - Govern the **three scarce knobs**: feeBps, weekly DCA cap, buyback policy.
    - **Priority access** & better limits on ATN subscriptions.
-   - **LP boosts** (once enabled) and **bonding discounts** (later).
+   - **LP staking rewards** (once enabled) and **bonding discounts** (later).
    - **Protocol voting power** over venue caps/safety lights.
 4. **Supply:** **Fixed cap** (e.g., **200M AGN**). No emissions v1. Incentives (if any) come from **treasury-held AGN** via AIP.
 
@@ -57,9 +58,10 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 | Parameter           | Initial                                                                                      |
 | ------------------- | -------------------------------------------------------------------------------------------- |
-| Vault asset         | USDC (Base)                                                                                  |
-| Strategy            | One safe venue (no leverage), venue cap ≤ **60% TVL**                                        |
-| Idle buffer         | ≥ **20% TVL**                                                                                |
+| Vault assets        | USDC, USD1, EURC (Base L2)                                                                  |
+| Base strategy       | Aave v3 lending (guaranteed yield floor)                                                     |
+| Protocol allocation | Max caps: Aave ≤ **60% TVL**, WLF ≤ **40% TVL**, LP strategies ≤ **30% TVL** each           |
+| Idle buffer         | ≥ **20% TVL** across all stablecoins                                                        |
 | Fee on Yield        | **12%** (never on principal)                                                                 |
 | Runway buffer       | **6 months** OPEX (USDC)                                                                     |
 | Weekly DCA cap      | **$5,000** USDC (can scale with TVL)                                                        |
@@ -76,64 +78,59 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ## 4) Contracts (minimal, auditable surfaces)
 
-1. **StableVault4626.sol** — ERC-4626 USDC vault; `deposit/withdraw/harvest()`. Takes **fee on yield only** and forwards to Treasury.
-2. **StrategyAdapter.sol** — one venue; `invest/divest/report()`.
-3. **Treasury.sol** — holds USDC/ETH, tracks **Runway** & **CR**; `weeklyDCA()`; emits `BuyEthExecuted(spentUSDC, receivedETH, price)`.
-4. **BondManager.sol + ATNTranche.sol** — fixed-APR USDC notes; `subscribe/payCoupons/redeem`; issuance auto-pauses if CR < 1.2×.
-5. **Buyback.sol** — **Weekly** TWAP/split orders, **≤10% of 30d DEX volume**, minimum pool depth **$50K**, private relay flag; splits **50/50 burn/treasury**.
-6. **Gov.sol** — multisig + timelock; sets feeBps, DCA caps, buyback % & split, ATN params.
-7. **AttestationEmitter.sol (internal)** — emits transparency events (baseline/realized) for dashboard; no settlement gating.
+1. **StableVault4626.sol** — Multi-asset ERC-4626 vault (USDC/USD1/EURC); `deposit/withdraw/harvest()`. Takes **fee on yield only** and forwards to Treasury.
+2. **TreasuryManager.sol** — Multi-protocol rebalancing controller; dynamically allocates across Aave, WLF, Uniswap V3, Aerodrome based on risk-adjusted yields.
+3. **Protocol Adapters:**
+   - **AaveAdapter.sol** — Aave v3 lending integration for yield floor
+   - **WLFAdapter.sol** — World Liberty Financial vault integration  
+   - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management
+   - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
+4. **Treasury.sol** — holds multi-stablecoin/ETH, FX arbitrage execution, tracks **Runway** & **CR**; `weeklyDCA()` + `executeFXArbitrage()`.
+5. **BondManager.sol + ATNTranche.sol** — fixed-APR multi-stablecoin notes; `subscribe/payCoupons/redeem`; issuance auto-pauses if CR < 1.2×.
+6. **Buyback.sol** — **Weekly** TWAP/split orders with LP governance integration; splits **50/50 burn/treasury**.
+7. **Gov.sol** — AGN holder + LP staker governance; LP stakers can vote on protocol integrations and high-risk strategies.
+8. **AttestationEmitter.sol** — emits strategy performance and rebalancing events for full transparency.
 
 ---
 
-## 5) Governance: your TIP-11 → Agonic AIP-01, plus AIP-02 bonds
+## 5) Single Build Deployment
 
-1. **AIP-01 — ETH Reserve & Yield Flywheel**
-  40% of NY → buybacks (gated by Runway & CR); 50% burn / 50% treasury; single-sided staking sunset; LP staking framework defined but **OFF** at TGE; TWAP + volume caps.
-2. **AIP-02 — Agonic Treasury Notes (ATN) Program**
-  Authorizes ATN; **Tranche 01**: $250k cap, 8% APR, 6m term, weekly coupons, proceeds 100% to ETH DCA; transfers disabled until maturity; CR & runway guards; weekly reporting.
+**Complete Day One Launch:**
 
-> (Full AIP markdowns are at the end—paste into `/governance`.)
+1. **Full Protocol Suite**: Deploy all contracts simultaneously on Base L2
+   - Multi-asset vault (USDC/USD1/EURC) with protocol integrations
+   - Treasury with ETH DCA and FX arbitrage capabilities  
+   - ATN bond system with automated coupon payments
+   - Buyback mechanism with safety gate logic (enabled when conditions met)
+   - Governance contracts with dual voting (AGN + LP stakers)
 
----
+2. **Complete Web Interface**:
+   - Multi-asset deposit/withdraw with real-time APY comparison
+   - Treasury dashboard with ETH accumulation and FX profit tracking
+   - ATN subscription flow with coupon schedules and CR monitoring
+   - Buyback status with safety gate indicators and TPT metrics
+   - Protocol allocation breakdown across all integrated venues
 
-## 6) Roadmap to mainnet (4–8 weeks)
-
-**Week 1–2 — Core rails**
-
-1. Deploy **Vault + StrategyAdapter** (Sepolia → Base canary), **Treasury** (runway/CR), **Gov**.
-2. Web: Deposit/Withdraw; APY; **Treasury ETH** chart; **DCA log**.
-
-**Week 3 — Notes & policies**
-
-1. Deploy **BondManager + ATNTranche**; wire `payCoupons/redeem`.
-2. Publish **AIP-01/AIP-02**; parameterize for canary.
-3. Web: "Buy Notes" flow; coupon schedule; **CR light**.
-
-**Week 4 — Canary mainnet**
-
-1. Vault TVL cap **$100–250k**; ATN-01 cap **$250k**.
-2. DCA small; **buybacks OFF** until Runway ≥ 6m & CR ≥ 1.2× for ≥ 2 weeks.
-
-**Weeks 5–8 — Scale carefully**
-
-1. Raise caps; consider enabling **small buybacks** per AIP-01.
-2. Prepare LP staking AIP (OFF by default).
-3. Add second venue adapter (separate cap).
+3. **Conservative Launch Parameters**:
+   - Initial TVL caps per protocol for safety
+   - ATN bond cap for first tranche
+   - Buyback mechanism armed but gated (activates automatically when runway ≥6m & CR ≥1.2× consistently)
+   - LP staking framework contracts deployed but disabled pending governance activation
 
 ---
 
-## 7) Dashboard (must-have tiles)
+## 6) Dashboard (must-have tiles)
 
-1. **Your position:** shares, earned USDC/ETH, ETH Boost toggle.
-2. **Vault:** TVL; venue allocation; idle %; realized net APY.
-3. **Treasury:** ETH reserve over time; **BuyEthExecuted** log (block, route, price).
-4. **ATN:** outstanding principal; next coupon date/amount; coupons paid; **CR**.
-5. **Buybacks:** weekly execution log, AGN bought/burned/treasury; **liquidity depth check**; safety lights **RUNWAY_OK / CR_OK / BUYBACKS_ON**; **TPT metric**.
+1. **Your position:** shares, earned yield by stablecoin, ETH Boost toggle, LP staking status (if applicable).
+2. **Vault:** Total TVL by asset (USDC/USD1/EURC); protocol allocation breakdown (Aave/WLF/Uniswap/Aerodrome); idle % by stablecoin; realized net APY per protocol.
+3. **Treasury:** ETH reserve over time; **BuyEthExecuted** + **FXArbitrageExecuted** logs with routing details.
+4. **ATN:** outstanding principal by stablecoin; next coupon date/amount; coupons paid; **CR**.
+5. **Buybacks:** weekly execution log, AGN bought/burned/treasury; **liquidity depth check**; LP governance participation; safety lights **RUNWAY_OK / CR_OK / BUYBACKS_ON**; **TPT metric**.
+6. **Strategy Performance:** Real-time APY comparison across protocols; rebalancing history; FX arbitrage profit tracking.
 
 ---
 
-## 8) Risk & controls (plain English)
+## 7) Risk & controls (plain English)
 
 1. **Principal safety:** only blue-chip, capped venues; no leverage; idle buffer.
 2. **Runway before risk:** we don't buy ETH or buy back AGN until runway is healthy.
@@ -143,7 +140,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ---
 
-## 9) Weekly runbooks
+## 8) Weekly runbooks
 
 1. **Harvest:** pull strategy yield → Vault → fee on yield → Treasury.
 2. **DCA:** once per week, `weeklyDCA()` with cap; record event.
@@ -153,7 +150,7 @@ No separate Taska or AgentPayy in v1. Task automation/attestations live **inside
 
 ---
 
-## 10) Repo structure (ready to scaffold)
+## 9) Repo structure (ready to scaffold)
 
 ```
 agonic/
@@ -173,26 +170,8 @@ agonic/
 │     ├─ AttestationEmitter.sol   # events-only transparency
 │     └─ sdk/ (ts)                # tiny client for the web app
 └─ governance/
-   ├─ AIP-01_ETH_Reserve_Yield_Flywheel.md
-   └─ AIP-02_Agonic_Treasury_Notes_Tranche01.md
+   └─ future-proposals/       # Directory for community AIPs
 ```
-
----
-
-## **Appendix: ve-Style Boosts (Optional Future Enhancement)**
-
-**What are ve-style boosts?**
-1. Users lock AGN tokens for different time periods (1 week to 4 years)
-2. Longer locks get higher LP staking reward multipliers
-3. Example: 1 week lock = 1.0× rewards, 4 year lock = 2.5× rewards
-4. Reduces sell pressure and rewards long-term holders
-
-**Implementation (if desired):**
-1. Deploy veAGN contract alongside LP staking
-2. Lock mechanism: Users choose duration, get voting power + reward multiplier
-3. Benefits: Lower token velocity, stronger governance alignment, higher APRs for committed users
-
-**Decision:** Optional. Can launch LP staking without ve-boosts initially and add later via AIP.
 
 ---
 

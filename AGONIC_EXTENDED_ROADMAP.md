@@ -20,10 +20,10 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 ## 1) Day-One Product (What ships)
 
 ### 1.1 User Experience
-1. **sUSD Vault (ERC-4626, USDC only)**: deposit/withdraw; **one safe venue** on Base; **no leverage**; venue caps enforced.
-2. **ETH Reserve Transparency**: Treasury performs **weekly DCA** USDC→ETH; every trade logs on-chain and to the dashboard.
-3. **Optional ETH Boost**: users may elect to receive **a % of their yield in ETH** (principal remains in USDC).
-4. **Agonic Treasury Notes (ATN)**: on-chain fixed-APR **USDC notes** (non-transferable until maturity) to accelerate ETH accumulation.
+1. **Multi-Stablecoin Vault (ERC-4626)**: deposit/withdraw USDC, USD1, EURC; **dynamic allocation** across proven Base protocols (Aave, WLF, Uniswap V3, Aerodrome); **allocation caps enforced** per protocol.
+2. **ETH Reserve + FX Transparency**: Treasury performs **weekly DCA** with optimal routing plus **FX arbitrage** across stablecoin pairs; every trade and rebalancing action logged on-chain.
+3. **Optional ETH Boost**: users may elect to receive **a % of their yield in ETH** (principal remains in chosen stablecoin).
+4. **Enhanced ATN Program**: on-chain fixed-APR **multi-stablecoin notes** (non-transferable until maturity) to accelerate ETH accumulation and FX strategy funding.
 
 ### 1.2 Token Flywheel (TIP-11 merged)
 1. **40% of Net Yield (NY)** → **Buyback Pool** (BP), when safety gates are green.
@@ -37,7 +37,7 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 
 ### 2.1 Two ETH inflows
 1) **Fee on yield** from the vault (**12%** of realized yield, never on principal) → Treasury.  
-2) **ATN bond proceeds** → **100%** routed to ETH DCA per AIP-02.
+2) **ATN bond proceeds** → **100%** routed to ETH DCA automatically.
 
 ### 2.2 Safety gates (discipline)
 1. **Runway buffer:** maintain **≥ 6 months OPEX (USDC)** before any DCA or buybacks.  
@@ -47,7 +47,7 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 
 ### 2.3 $AGN value drivers (mechanical, not promises)
 1. Programmatic buybacks (40% of NY; gates on) via **TWAP/split orders** → **50% burn / 50% treasury**.  
-2. **Governance utility** over three scarce knobs; potential **priority ATN access**; **LP boosts/bonding discounts** later.  
+2. **Governance utility** over three scarce knobs; potential **priority ATN access**; **LP staking rewards/bonding discounts** later.  
 3. **TPT (Treasury-per-Token)** published weekly (informational transparency metric).  
 4. **Fixed supply** (e.g., 200M AGN). No emissions v1; incentives (if any) come from treasury-held AGN via AIP.
 
@@ -57,29 +57,37 @@ We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska'
 
 | Parameter | Initial |
 |---|---|
-| Vault asset | USDC (Base) |
-| Strategy | One blue-chip venue, **cap ≤ 60% TVL**, no leverage |
-| Idle buffer | **≥ 20% TVL** |
+| Vault assets | USDC, USD1, EURC (Base L2) |
+| Base strategy | Aave v3 lending (guaranteed yield floor) |
+| Protocol allocation | Aave ≤ **60% TVL**, WLF ≤ **40% TVL**, LP strategies ≤ **30% TVL** each |
+| Idle buffer | **≥ 20% TVL** (across all stablecoins) |
 | Fee on Yield | **12%** (never on principal) |
-| Runway buffer | **6 months** OPEX |
-| Weekly DCA cap | **$5,000** USDC (scales with TVL) |
-| Buyback pool | **40% of NY** (gated) |
+| Runway buffer | **6 months** OPEX (multi-stablecoin) |
+| Weekly DCA cap | **$5,000** equivalent (scales with TVL) |
+| FX arbitrage | Enabled for EURC/USDC/USD1 pairs |
+| Buyback pool | **40% of NY** (gated, includes FX profits) |
 | Buyback split | **50% burn / 50% treasury** |
-| CR minimum | **1.2×** |
-| ATN-01 tranche | **$250k** cap; **8% APR**; **6m** term; non-transferable until maturity |
+| LP governance | LP stakers vote on high-risk strategies |
+| CR minimum | **1.2×** (multi-asset treasury) |
+| ATN-01 tranche | **$250k** cap; **8% APR**; **6m** term; multi-stablecoin; non-transferable |
 
 ---
 
 ## 4) Architecture Overview (How)
 
 **Smart Contract Suite:**
-1. **StableVault4626.sol** — ERC-4626 USDC vault with yield fee collection
-2. **StrategyAdapter.sol** — Single venue adapter with safety caps  
-3. **Treasury.sol** — USDC/ETH holdings, DCA execution, runway/CR tracking
-4. **BondManager.sol + ATNTranche.sol** — Fixed-APR note issuance and management
-5. **Buyback.sol** — TWAP AGN purchases with burn/treasury split
-6. **Gov.sol** — Governance over key parameters  
-7. **AttestationEmitter.sol** — Transparency events for dashboard
+1. **StableVault4626.sol** — Multi-asset ERC-4626 vault (USDC/USD1/EURC) with yield fee collection
+2. **TreasuryManager.sol** — Multi-protocol rebalancing controller with dynamic allocation
+3. **Protocol Adapters:**
+   - **AaveAdapter.sol** — Aave v3 lending integration for yield floor
+   - **WLFAdapter.sol** — World Liberty Financial vault integration
+   - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management  
+   - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
+4. **Treasury.sol** — Multi-stablecoin/ETH holdings, DCA execution, FX arbitrage, runway/CR tracking
+5. **BondManager.sol + ATNTranche.sol** — Fixed-APR multi-stablecoin note issuance and management
+6. **Buyback.sol** — TWAP AGN purchases with LP governance integration, burn/treasury split
+7. **Gov.sol** — Dual governance (AGN holders + LP stakers) over protocol integrations and parameters
+8. **AttestationEmitter.sol** — Strategy performance and rebalancing transparency events
 
 **Integration Points:**
 1. **Vault ↔ StrategyAdapter** — Yield generation and harvest

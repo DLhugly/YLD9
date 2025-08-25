@@ -20,18 +20,21 @@
 ```
 apps/stable-swap/src/
 ├── lib/
-│   ├── config.ts           # Env management → adapt for vault
-│   ├── math.ts             # BPS calculations → reuse for fees/CR
-│   ├── viem.ts             # Base L2 client → reuse for DCA
-│   ├── tokens.ts           # Token metadata → expand for AGN
-│   └── venues/             # DEX integrations → adapt for strategies
-│       ├── univ3.ts        # → StrategyAdapter pattern
-│       └── aerodrome.ts    # → StrategyAdapter pattern
+│   ├── config.ts           # Env management → adapt for multi-stablecoin vault
+│   ├── math.ts             # BPS calculations → reuse for fees/CR/FX
+│   ├── viem.ts             # Base L2 client → reuse for DCA/rebalancing
+│   ├── tokens.ts           # Token metadata → expand for USDC/USD1/EURC/AGN
+│   └── venues/             # Multi-protocol integrations → strategy adapters
+│       ├── univ3.ts        # → Uniswap V3 LP strategy + concentrated liquidity
+│       ├── aerodrome.ts    # → Aerodrome stable LP + reward harvesting
+│       ├── aave.ts         # → NEW: Aave v3 lending integration
+│       └── wlf.ts          # → NEW: World Liberty Financial adapter
 ├── components/
-│   └── SwapCard.tsx        # → VaultCard.tsx (deposit/withdraw)
+│   └── SwapCard.tsx        # → VaultCard.tsx (multi-asset deposit/withdraw)
 └── app/api/
-    ├── quote/route.ts      # → vault/apy endpoint
-    └── fx/implied/route.ts # → treasury/dca endpoint
+    ├── quote/route.ts      # → vault/apy endpoint (multi-protocol)
+    ├── fx/implied/route.ts # → FX arbitrage opportunities (EURC/USDC/USD1)
+    └── rebalance/route.ts  # → NEW: Dynamic strategy allocation
 ```
 
 **Smart contract foundation:**
@@ -69,21 +72,25 @@ agonic/
 │       └── coupons.ts                  # ATN coupon payments
 ├── packages/
 │   ├── protocol/                       # Smart contracts
-│   │   ├── StableVault4626.sol         # Main vault (new)
-│   │   ├── StrategyAdapter.sol         # Venue integration (adapt venues/)
-│   │   ├── Treasury.sol                # DCA + CR logic (adapt RouterExecutor)
-│   │   ├── BondManager.sol             # ATN issuance (new)
+│   │   ├── StableVault4626.sol         # Multi-asset vault (USDC/USD1/EURC)
+│   │   ├── TreasuryManager.sol         # Multi-protocol integration controller
+│   │   ├── strategies/                 # Protocol-specific adapters
+│   │   │   ├── AaveAdapter.sol         # Aave v3 lending strategy
+│   │   │   ├── WLFAdapter.sol          # World Liberty Financial integration
+│   │   │   ├── UniswapAdapter.sol      # Uniswap V3 concentrated liquidity
+│   │   │   └── AerodromeAdapter.sol    # Aerodrome stable LP management
+│   │   ├── Treasury.sol                # ETH DCA + FX arbitrage logic
+│   │   ├── BondManager.sol             # ATN issuance with multi-asset support
 │   │   ├── ATNTranche.sol              # Note implementation (new)
-│   │   ├── Buyback.sol                 # AGN buybacks (new)
-│   │   ├── Gov.sol                     # Parameter governance (new)
-│   │   └── AttestationEmitter.sol      # Transparency events (new)
+│   │   ├── Buyback.sol                 # AGN buybacks with LP governance
+│   │   ├── Gov.sol                     # LP staker + AGN holder governance
+│   │   └── AttestationEmitter.sol      # Strategy performance transparency
 │   └── sdk/                            # TypeScript SDK
 │       ├── vault.ts                    # Vault interaction utilities
 │       ├── treasury.ts                 # Treasury state queries
 │       └── bonds.ts                    # ATN subscription helpers
-├── governance/                         # AIP proposals
-│   ├── AIP-01_ETH_Reserve_Flywheel.md
-│   └── AIP-02_Treasury_Notes.md
+├── governance/                         # Future community proposals
+│   └── future-proposals/               # Directory for community AIPs
 └── phase2-appchain/                    # Future app chain (Phase 2)
     ├── agonic-chain/                   # Cosmos SDK modules
     ├── bridge-contracts/               # Base L2 ↔ Agonic bridge
@@ -119,11 +126,12 @@ mv apps/stable-swap apps/web
 ```
 
 ### **4. First Implementation Target**
-**Week 1-2 Goal:** Basic vault + treasury working on Base L2
-1. Deploy `StableVault4626.sol` (ERC-4626 USDC vault)
-2. Deploy `Treasury.sol` (adapted from RouterExecutor fee logic)
-3. Deploy `StrategyAdapter.sol` (reuse your venue expertise)  
-4. Build vault UI (adapt SwapCard → VaultCard)
+**Foundation Goal:** Multi-protocol vault + treasury working on Base L2
+1. Deploy `StableVault4626.sol` (Multi-asset vault: USDC, USD1, EURC)
+2. Deploy `AaveAdapter.sol` (Base yield floor via Aave v3 integration)
+3. Deploy `TreasuryManager.sol` (Multi-protocol rebalancing controller)
+4. Deploy `Treasury.sol` (ETH DCA + FX arbitrage capabilities)  
+5. Build vault UI (Multi-asset deposit/withdraw with yield comparison)
 
 ---
 
@@ -143,11 +151,13 @@ Your React patterns work perfectly for vault:
 // Agonic: depositAmount, USDC only → deposit() / withdraw()
 ```
 
-### **Venue Logic → Strategy Logic**
-Your multi-venue comparison becomes strategy optimization:
+### **Venue Logic → Multi-Protocol Strategy Logic**
+Your multi-venue comparison becomes automated yield optimization:
 ```typescript
 // Current: Compare Uniswap vs Aerodrome for best price
-// Agonic: Compare venues for best yield, enforce caps
+// Agonic: Compare Aave, WLF, Uniswap LP, Aerodrome for best risk-adjusted yield
+// Auto-rebalance based on performance + enforce protocol allocation caps
+// Execute FX arbitrage opportunities across EURC/USDC/USD1 pairs
 ```
 
 ---
