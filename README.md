@@ -1,7 +1,9 @@
 # 🏦 **Agonic - Stable Yield Vault with ETH Treasury**
 
+*Built from [StableSwap](https://github.com/DLhugly/StableSwap) foundation*
+
 ## **What is Agonic?**
-A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy-style) and performs disciplined AGN buybacks. Built on StableSwap's proven Base L2 infrastructure with professional-grade smart contracts.
+A conservative yield vault that accumulates ETH treasury reserves (MicroStrategy-style) and performs disciplined AGN buybacks. Built on Base L2 infrastructure with professional-grade smart contracts.
 
 ## **Key Features**
 1. **ERC-4626 USDC Vault** - Conservative yield farming with venue caps and safety buffers
