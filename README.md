@@ -56,14 +56,14 @@ agonic/
 
 ## **Quick Start**
 
-1. **Install Dependencies**:
+1. **Setup Everything**:
    ```bash
-   npm install
+   npm run setup
    ```
 
-2. **Build Contracts**:
+2. **Start Development**:
    ```bash
-   npm run build:contracts
+   npm run dev
    ```
 
 3. **Test Contracts**:
@@ -71,15 +71,19 @@ agonic/
    npm run test:contracts
    ```
 
-4. **Start Frontend**:
-   ```bash
-   npm run dev
-   ```
-
-5. **Deploy to Base Sepolia**:
+4. **Deploy to Base Sepolia**:
    ```bash
    npm run deploy:base-sepolia
    ```
+
+### **Manual Setup (if needed)**
+```bash
+# Install frontend dependencies (with React 19 compatibility)
+npm run setup:frontend
+
+# Build contracts
+npm run build:contracts
+```
 
 ## **Implementation Status**
 

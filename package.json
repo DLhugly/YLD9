@@ -8,6 +8,8 @@
     "frontend"
   ],
   "scripts": {
+    "setup": "npm run setup:frontend && npm run build:contracts",
+    "setup:frontend": "cd frontend && npm install --legacy-peer-deps",
     "build": "npm run build:contracts && npm run build:frontend",
     "build:contracts": "cd contracts && forge build",
     "build:frontend": "cd frontend && npm run build",
@@ -17,7 +19,7 @@
     "deploy:base-sepolia": "cd contracts && forge script script/DeployAgonic.s.sol --rpc-url base_sepolia --broadcast --verify",
     "dev": "cd frontend && npm run dev",
     "start": "npm run dev",
-    "clean": "cd contracts && forge clean && cd ../frontend && rm -rf .next"
+    "clean": "cd contracts && forge clean && cd ../frontend && rm -rf .next node_modules"
   },
   "keywords": [
     "defi",
