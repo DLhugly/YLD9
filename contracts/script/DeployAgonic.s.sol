@@ -45,7 +45,7 @@ contract DeployAgonic is Script {
             AGN_TOKEN,
             USDC,
             address(treasury),
-            address(0x5) // Mock DEX router address
+            address(0x5) // Mock AGN/USDC pool address - will be updated after pool creation
         );
         console.log("Buyback deployed at:", address(buyback));
 

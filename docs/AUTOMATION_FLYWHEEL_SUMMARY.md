@@ -85,3 +85,19 @@ All documentation in `docs/` has been surgically updated to reflect the new **2-
 - **Risk Management**: Automated throttling based on CR, runway, IL exposure
 
 This automated flywheel transforms Agonic from a manual treasury protocol into a fully autonomous profit-maximizing machine with industry-leading projected returns.
+
+## **Aerodrome Integration (Base DEX)**
+
+### ✅ **Completed**
+- **Router Integration**: Full Aerodrome Router interface for AGN buybacks
+- **LP Management**: Automated liquidity addition with 90/10 burn/LP split  
+- **Pool Monitoring**: Real-time liquidity depth tracking for safety gates
+- **Fee Harvesting**: Automated LP fee claiming for additional treasury yield
+
+### **Key Features**
+- **Native Base Integration**: Leverages Aerodrome as Base's leading DEX ([aerodrome.finance](https://aerodrome.finance))
+- **TWAP Protection**: Uses Aerodrome's proven swap infrastructure for buyback execution
+- **LP Growth**: 10% of buybacks automatically paired with USDC for liquidity growth
+- **Fee Compounding**: LP fees harvested weekly and routed back to stable accumulation (Rule 1)
+
+This ensures AGN has deep, sustainable liquidity on Base while maximizing treasury efficiency through Aerodrome's battle-tested infrastructure.

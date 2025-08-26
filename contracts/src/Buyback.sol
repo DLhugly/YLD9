@@ -7,6 +7,45 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITreasury.sol";
 
+// Aerodrome Router interface (simplified for swaps and LP)
+interface IAerodromeRouter {
+    function swapExactTokensForTokens(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+    
+    function addLiquidity(
+        address tokenA,
+        address tokenB,
+        bool stable,
+        uint amountADesired,
+        uint amountBDesired,
+        uint amountAMin,
+        uint amountBMin,
+        address to,
+        uint deadline
+    ) external returns (uint amountA, uint amountB, uint liquidity);
+    
+    function quoteAddLiquidity(
+        address tokenA,
+        address tokenB,
+        bool stable,
+        uint amountADesired,
+        uint amountBDesired
+    ) external view returns (uint amountA, uint amountB, uint liquidity);
+}
+
+// Aerodrome Pool interface (for LP management)
+interface IAerodromePool {
+    function claimFees() external returns (uint claimed0, uint claimed1);
+    function balanceOf(address account) external view returns (uint256);
+    function totalSupply() external view returns (uint256);
+    function stable() external view returns (bool);
+}
+
 /**
  * @title Buyback
  * @notice AGN token buyback mechanism with TWAP execution and safety gates
@@ -24,8 +63,11 @@ contract Buyback is Ownable, ReentrancyGuard {
     /// @notice USDC token for buyback funding
     IERC20 public immutable USDC;
     
-    /// @notice DEX router for TWAP execution (Uniswap V3 or Aerodrome)
-    address public dexRouter;
+    /// @notice Aerodrome Router for TWAP execution on Base
+    address public constant AERODROME_ROUTER = 0xcF77a3Ba9A5CA399B7c97c74d54e5b1Beb874E43; // Base mainnet
+    
+    /// @notice AGN/USDC pool on Aerodrome
+    address public agnUsdcPool;
     
     /// @notice Buyback pool balance (40% of net yield)
     uint256 public buybackPool;
@@ -46,9 +88,9 @@ contract Buyback is Ownable, ReentrancyGuard {
     uint256 public twapDuration = 1 hours; // Execute over 1 hour
     uint256 public twapSlippage = 300; // 3% max slippage
     
-    /// @notice Buyback split: 50% burn, 50% treasury
-    uint256 public constant BURN_PERCENTAGE = 5000; // 50%
-    uint256 public constant TREASURY_PERCENTAGE = 5000; // 50%
+    /// @notice Buyback split: 90% burn, 10% LP pairing (matching docs)
+    uint256 public constant BURN_PERCENTAGE = 9000; // 90%
+    uint256 public constant LP_PAIRING_PERCENTAGE = 1000; // 10%
     uint256 public constant MAX_BPS = 10000;
     
     /// @notice LP stakers who can vote on buyback parameters
@@ -82,17 +124,19 @@ contract Buyback is Ownable, ReentrancyGuard {
     event ParametersUpdated(string parameter, uint256 value);
     event LPStakerAdded(address indexed staker, uint256 weight);
     event LPStakerRemoved(address indexed staker);
+    event LiquidityAdded(uint256 agnAmount, uint256 usdcAmount, uint256 liquidity);
+    event PoolFeesClaimed(uint256 claimed0, uint256 claimed1);
 
     constructor(
         address _agn,
         address _usdc,
         address _treasury,
-        address _dexRouter
+        address _agnUsdcPool
     ) Ownable(msg.sender) {
         AGN = IERC20(_agn);
         USDC = IERC20(_usdc);
         treasury = ITreasury(_treasury);
-        dexRouter = _dexRouter;
+        agnUsdcPool = _agnUsdcPool;
         lastBuybackTime = block.timestamp;
     }
 
@@ -139,21 +183,24 @@ contract Buyback is Ownable, ReentrancyGuard {
         uint256 agnBought = _executeTWAPBuyback(buybackAmount);
         require(agnBought > 0, "Buyback execution failed");
         
-        // Split AGN: 50% burn, 50% to treasury
+        // Split AGN: 90% burn, 10% LP pairing (matching docs)
         uint256 agnToBurn = (agnBought * BURN_PERCENTAGE) / MAX_BPS;
-        uint256 agnToTreasury = agnBought - agnToBurn;
+        uint256 agnForLP = agnBought - agnToBurn;
         
         // Burn AGN tokens (send to burn address)
-        AGN.transfer(address(0xdead), agnToBurn);
+        _burnAGN(agnToBurn);
         
-        // Send AGN to treasury
-        AGN.safeTransfer(address(treasury), agnToTreasury);
+        // Send AGN for LP pairing to treasury (if LP depth < target)
+        if (agnForLP > 0) {
+            AGN.safeTransfer(address(treasury), agnForLP);
+            // Treasury will pair with USDC if LP conditions met
+        }
         
         // Update statistics
         totalUSDCSpent += buybackAmount;
         totalAGNBought += agnBought;
         totalAGNBurned += agnToBurn;
-        totalAGNToTreasury += agnToTreasury;
+        totalAGNToTreasury += agnForLP; // Track AGN sent for LP pairing
         
         // Record execution
         buybackHistory.push(BuybackExecution({
@@ -161,7 +208,7 @@ contract Buyback is Ownable, ReentrancyGuard {
             usdcSpent: buybackAmount,
             agnBought: agnBought,
             agnBurned: agnToBurn,
-            agnToTreasury: agnToTreasury,
+            agnToTreasury: agnForLP,
             avgPrice: buybackAmount * 1e18 / agnBought,
             safetyGatesOK: true
         }));
@@ -170,7 +217,7 @@ contract Buyback is Ownable, ReentrancyGuard {
         buybackPool -= buybackAmount;
         lastBuybackTime = block.timestamp;
         
-        emit BuybackExecuted(buybackAmount, agnBought, agnToBurn, agnToTreasury);
+        emit BuybackExecuted(buybackAmount, agnBought, agnToBurn, agnForLP);
     }
     
     /**
@@ -208,20 +255,35 @@ contract Buyback is Ownable, ReentrancyGuard {
         // For now, simulate single large purchase with slippage protection
         uint256 minAGNOut = _calculateMinAGNOut(usdcAmount);
         
-        // Mock DEX swap - in production use actual router
-        agnBought = _mockDEXSwap(usdcAmount, minAGNOut);
+        // Execute swap via Aerodrome Router
+        agnBought = _executeAerodromeSwap(usdcAmount, minAGNOut);
     }
 
     /**
-     * @notice Mock DEX swap for testing
+     * @notice Execute swap via Aerodrome Router
      * @param usdcIn USDC input amount
      * @param minAGNOut Minimum AGN output
      * @return agnOut AGN tokens received
      */
-    function _mockDEXSwap(uint256 usdcIn, uint256 minAGNOut) internal pure returns (uint256 agnOut) {
-        // Mock: assume 1 USDC = 1.2 AGN (price will vary)
-        agnOut = (usdcIn * 12) / 10; // 1.2 AGN per USDC
-        require(agnOut >= minAGNOut, "Insufficient output");
+    function _executeAerodromeSwap(uint256 usdcIn, uint256 minAGNOut) internal returns (uint256 agnOut) {
+        // Approve USDC to Aerodrome Router
+        USDC.approve(AERODROME_ROUTER, usdcIn);
+        
+        // Prepare swap route: USDC -> AGN
+        address[] memory route = new address[](2);
+        route[0] = address(USDC);
+        route[1] = address(AGN);
+        
+        // Execute swap through Aerodrome Router
+        uint[] memory amounts = IAerodromeRouter(AERODROME_ROUTER).swapExactTokensForTokens(
+            usdcIn,
+            minAGNOut,
+            route,
+            address(this),
+            block.timestamp + 300 // 5 minute deadline
+        );
+        
+        agnOut = amounts[1]; // AGN received (last element in amounts array)
     }
 
     /**
@@ -254,10 +316,15 @@ contract Buyback is Ownable, ReentrancyGuard {
      * @return liquidity Current pool liquidity in USDC
      */
     function _getPoolLiquidity() internal view returns (uint256 liquidity) {
-        // In production: query actual DEX pool reserves
-        // For Aerodrome/Uniswap V3, get reserve amounts
-        // Mock implementation for testing
-        liquidity = 100000e6; // Mock $100K liquidity
+        if (agnUsdcPool == address(0)) {
+            return 0;
+        }
+        
+        // Get USDC balance in the AGN/USDC pool (represents half of total liquidity)
+        uint256 usdcBalance = USDC.balanceOf(agnUsdcPool);
+        
+        // Estimate total liquidity as 2x USDC balance (assuming balanced pool)
+        liquidity = usdcBalance * 2;
     }
     
     /**
@@ -422,11 +489,68 @@ contract Buyback is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Update DEX router
-     * @param newRouter New router address
+     * @notice Update AGN/USDC pool address
+     * @param newPool New pool address
      */
-    function updateDEXRouter(address newRouter) external onlyOwner {
-        require(newRouter != address(0), "Invalid router");
-        dexRouter = newRouter;
+    function updateAGNUSDCPool(address newPool) external onlyOwner {
+        require(newPool != address(0), "Invalid pool");
+        agnUsdcPool = newPool;
+    }
+
+    /**
+     * @notice Add liquidity to AGN/USDC pool on Aerodrome
+     * @param agnAmount AGN tokens to add
+     * @param usdcAmount USDC tokens to add
+     * @param stable Whether the pool is stable (true) or volatile (false)
+     * @return liquidity LP tokens received
+     */
+    function addLiquidity(
+        uint256 agnAmount,
+        uint256 usdcAmount,
+        bool stable
+    ) external onlyOwner returns (uint256 liquidity) {
+        require(agnAmount > 0 && usdcAmount > 0, "Invalid amounts");
+        
+        // Approve tokens to Aerodrome Router
+        AGN.approve(AERODROME_ROUTER, agnAmount);
+        USDC.approve(AERODROME_ROUTER, usdcAmount);
+        
+        // Add liquidity to AGN/USDC pool
+        (,, liquidity) = IAerodromeRouter(AERODROME_ROUTER).addLiquidity(
+            address(AGN),
+            address(USDC),
+            stable,
+            agnAmount,
+            usdcAmount,
+            (agnAmount * 9500) / 10000, // 5% slippage tolerance
+            (usdcAmount * 9500) / 10000, // 5% slippage tolerance
+            address(this), // LP tokens go to Buyback contract
+            block.timestamp + 300 // 5 minute deadline
+        );
+        
+        emit LiquidityAdded(agnAmount, usdcAmount, liquidity);
+    }
+    
+    /**
+     * @notice Claim fees from AGN/USDC pool
+     * @return claimed0 Amount of token0 fees claimed
+     * @return claimed1 Amount of token1 fees claimed
+     */
+    function claimPoolFees() external onlyOwner returns (uint256 claimed0, uint256 claimed1) {
+        require(agnUsdcPool != address(0), "Pool not set");
+        
+        (claimed0, claimed1) = IAerodromePool(agnUsdcPool).claimFees();
+        
+        emit PoolFeesClaimed(claimed0, claimed1);
+    }
+
+    /**
+     * @notice Get LP token balance in AGN/USDC pool
+     * @return balance LP token balance of this contract
+     */
+    function getLPBalance() external view returns (uint256 balance) {
+        if (agnUsdcPool != address(0)) {
+            balance = IAerodromePool(agnUsdcPool).balanceOf(address(this));
+        }
     }
 }
