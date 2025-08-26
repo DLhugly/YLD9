@@ -78,9 +78,8 @@ contract AgonicVaultTest is Test {
         uint256 currentPrice = treasury.getCurrentETHPrice();
         assertTrue(currentPrice > 0);
         
-        // Test manual price update
-        treasury.updateETHPrice(3000e6); // $3000
-        assertEq(treasury.getCurrentETHPrice(), 3000e6);
+        // Note: Manual price update removed - now uses Chainlink oracle only
+        // treasury.updateETHPrice(3000e6); // Removed legacy function
     }
 
     function testTreasuryCirculatingSupply() public {

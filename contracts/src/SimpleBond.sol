@@ -132,8 +132,8 @@ contract SimpleBond is Ownable, ReentrancyGuard {
         weeklyIssued += agnAmount;
         totalIssued += agnAmount;
 
-        // Trigger treasury to process inflow (convert to ETH and execute buybacks)
-        treasury.processInflow(usdcAmount);
+        // Trigger treasury to process inflow with automated 80/20 routing
+        treasury.processInflowAutomated(usdcAmount);
 
         // Emit events
         emit BondPurchased(msg.sender, usdcAmount, agnAmount, bondId, block.timestamp);

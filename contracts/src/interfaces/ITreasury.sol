@@ -6,28 +6,11 @@ pragma solidity ^0.8.20;
  * @notice Interface for the Treasury contract that handles ETH accumulation and DCA
  */
 interface ITreasury {
-    /**
-     * @notice Execute weekly DCA purchase of ETH
-     * @param amount Amount of stablecoins to convert to ETH
-     * @return ethPurchased Amount of ETH purchased
-     */
-    function weeklyDCA(uint256 amount) external returns (uint256 ethPurchased);
 
-    /**
-     * @notice Execute FX arbitrage across stablecoin pairs
-     * @param fromAsset Source stablecoin
-     * @param toAsset Target stablecoin
-     * @param amount Amount to arbitrage
-     * @return profit Profit from arbitrage
-     */
-    function executeFXArbitrage(address fromAsset, address toAsset, uint256 amount) external returns (uint256 profit);
 
-    /**
-     * @notice Stake portion of ETH holdings
-     * @param amount Amount of ETH to stake
-     * @return stakedAmount Amount actually staked
-     */
-    function stakeETH(uint256 amount) external returns (uint256 stakedAmount);
+
+
+
 
     /**
      * @notice Get current runway in months
@@ -102,8 +85,10 @@ interface ITreasury {
     function getAGNPrice() external view returns (uint256 price);
 
     /**
-     * @notice Process inflow from bonds/staking fees for automatic buybacks
-     * @param usdcAmount Amount of USDC to process
+     * @notice Process inflows with automated 80/20 routing
+     * @param totalInflow Total inflow amount in USDC terms
      */
-    function processInflow(uint256 usdcAmount) external;
+    function processInflowAutomated(uint256 totalInflow) external;
+
+
 }

@@ -229,7 +229,7 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
             // Convert all fees to USDC for simplicity
             uint256 usdcFees = _convertToUSDC(treasuryFees, usdcYield, ethYield);
             USDC.safeTransfer(address(treasury), usdcFees);
-            treasury.processInflow(usdcFees);
+            treasury.processInflowAutomated(usdcFees);
         }
 
         // Distribute boosts to AGN lockers

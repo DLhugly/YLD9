@@ -70,8 +70,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
     uint256 public constant BURN_BPS = 9000; // 90% burn rate when safety gates OK
     uint256 public constant LOW_SAFETY_BURN_BPS = 5000; // 50% when runway/CR low
     
-    /// @notice ETH staking allocation limit (basis points)
-    uint256 public ethStakingLimit = 10000; // 100% can be staked via Lido
+
     
     /// @notice Minimum coverage ratio (scaled by 1e18)
     uint256 public minCoverageRatio = 1.2e18; // 1.2x
@@ -82,17 +81,14 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
     /// @notice Outstanding ATN principal
     uint256 public outstandingATN;
     
-    /// @notice ETH price oracle (for simplicity, using manual updates)
-    uint256 public ethPrice = 3000e6; // $3000 USDC per ETH
+
     
     /// @notice Maximum basis points
     uint256 public constant MAX_BPS = 10000;
     
-    /// @notice Weekly DCA cap in USDC
-    uint256 public weeklyDCACap = 5000e6; // $5k USDC
+
     
-    /// @notice FX arbitrage threshold (basis points)
-    uint256 public fxArbThreshold = 10; // 0.1%
+
     
     /// @notice TPT (Treasury per Token) history
     struct TPTSnapshot {
@@ -109,14 +105,14 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
     uint256 public lastTPTPublish;
     
     /// @notice Events
-    event DCAPurchase(uint256 usdcAmount, uint256 ethAmount, uint256 ethPrice);
-    event FXArbitrage(address fromAsset, address toAsset, uint256 amount, uint256 profit);
+
+
     event ETHStaked(uint256 amount, uint256 totalStaked);
     event StakingRewardsClaimed(uint256 amount);
     event SafetyGateTriggered(string gate, bool status);
     event ParameterUpdated(string param, uint256 value);
     event TPTPublished(uint256 tptValue, uint256 totalTreasuryValue, uint256 circulatingSupply, uint256 timestamp);
-    event InflowProcessed(uint256 usdcAmount, uint256 ethAmount, uint256 buybackAmount, uint256 holdAmount);
+
     event PriceFeedUpdated(address indexed priceFeed);
     event AutomatedHarvest(uint256 aaveYield, uint256 lidoRewards, uint256 totalYield);
     event AutomatedDCA(uint256 usdcAmount, uint256 ethAmount, uint256 ethPrice);
@@ -136,128 +132,13 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         AGN = _agn;
     }
 
-    /**
-     * @notice Execute weekly DCA purchase of ETH
-     * @param amount Amount of USDC to convert to ETH
-     * @return ethPurchased Amount of ETH purchased
-     */
-    function weeklyDCA(uint256 amount) external override onlyOwner nonReentrant returns (uint256 ethPurchased) {
-        require(amount <= weeklyDCACap, "Exceeds DCA cap");
-        require(stablecoinBalances[USDC] >= amount, "Insufficient USDC");
-        
-        // Check safety gates
-        (bool runwayOK, bool crOK) = getSafetyGateStatus();
-        require(runwayOK, "Runway too low for DCA");
-        
-        // Calculate ETH to purchase (simplified - in production use DEX)
-        ethPurchased = (amount * 1e18) / ethPrice;
-        
-        // Update balances
-        stablecoinBalances[USDC] -= amount;
-        liquidETH += ethPurchased;
-        
-        // In production: execute DEX swap here
-        // IERC20(USDC).safeTransfer(dexRouter, amount);
-        
-        emit DCAPurchase(amount, ethPurchased, ethPrice);
-    }
 
-    /**
-     * @notice Process inflow from bonds/staking fees with auto-buyback (ultra-simple)
-     * @param usdcAmount Amount of USDC received
-     */
-    function processInflow(uint256 usdcAmount) external nonReentrant {
-        require(usdcAmount > 0, "Amount must be > 0");
-        
-        // Convert USDC to ETH
-        uint256 ethAmount = _swapUSDCToETH(usdcAmount);
-        
-        // Determine burn ratio based on safety gates
-        uint256 burnRatio = _getBurnRatio();
-        
-        // Split: burn ratio for buybacks, remainder held as ETH
-        uint256 buybackAmount = (ethAmount * burnRatio) / 10000;
-        uint256 holdAmount = ethAmount - buybackAmount;
-        
-        // Execute buyback if amount > 0
-        if (buybackAmount > 0 && address(buyback) != address(0)) {
-            // Transfer ETH to buyback contract and execute
-            payable(address(buyback)).transfer(buybackAmount);
-            buyback.executeBuyback(buybackAmount);
-        }
-        
-        // Hold remaining ETH in treasury (stake via Lido if configured)
-        if (holdAmount > 0) {
-            liquidETH += holdAmount;
-            _stakeETHIfNeeded();
-        }
-        
-        // Update TPT and emit events
-        _updateTPT();
-        
-        emit InflowProcessed(usdcAmount, ethAmount, buybackAmount, holdAmount);
-    }
 
-    /**
-     * @notice Execute FX arbitrage across stablecoin pairs
-     * @param fromAsset Source stablecoin
-     * @param toAsset Target stablecoin
-     * @param amount Amount to arbitrage
-     * @return profit Profit from arbitrage
-     */
-    function executeFXArbitrage(
-        address fromAsset,
-        address toAsset,
-        uint256 amount
-    ) external override onlyOwner nonReentrant returns (uint256 profit) {
-        require(_isSupportedAsset(fromAsset) && _isSupportedAsset(toAsset), "Unsupported asset");
-        require(stablecoinBalances[fromAsset] >= amount, "Insufficient balance");
-        
-        // Get implied rates (simplified - in production use Chainlink/DEX)
-        uint256 impliedRate = _getImpliedFXRate(fromAsset, toAsset);
-        uint256 spotRate = 1e18; // Assume 1:1 for stablecoins
-        
-        // Check if arbitrage opportunity exists
-        uint256 deviation = impliedRate > spotRate ? 
-            impliedRate - spotRate : spotRate - impliedRate;
-        require((deviation * MAX_BPS) / spotRate >= fxArbThreshold, "Insufficient arbitrage opportunity");
-        
-        // Execute arbitrage (simplified)
-        uint256 receivedAmount = (amount * impliedRate) / 1e18;
-        profit = receivedAmount > amount ? receivedAmount - amount : 0;
-        
-        // Update balances
-        stablecoinBalances[fromAsset] -= amount;
-        stablecoinBalances[toAsset] += receivedAmount;
-        
-        emit FXArbitrage(fromAsset, toAsset, amount, profit);
-    }
 
-    /**
-     * @notice Stake portion of ETH holdings
-     * @param amount Amount of ETH to stake
-     * @return stakedAmount Amount actually staked
-     */
-    function stakeETH(uint256 amount) external override onlyOwner nonReentrant returns (uint256 stakedAmount) {
-        require(liquidETH >= amount, "Insufficient liquid ETH");
-        
-        uint256 totalETH = liquidETH + stakedETH;
-        uint256 maxStakeable = (totalETH * ethStakingLimit) / MAX_BPS;
-        
-        stakedAmount = stakedETH + amount > maxStakeable ? 
-            maxStakeable - stakedETH : amount;
-        
-        require(stakedAmount > 0, "No ETH to stake");
-        
-        // Update balances
-        liquidETH -= stakedAmount;
-        stakedETH += stakedAmount;
-        
-        // In production: call staking contract (Lido/Rocket Pool)
-        // ILido(lidoContract).submit{value: stakedAmount}(address(0));
-        
-        emit ETHStaked(stakedAmount, stakedETH);
-    }
+
+
+
+
 
     /**
      * @notice Claim staking rewards
@@ -295,7 +176,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
                                   stablecoinBalances[USD1] + 
                                   stablecoinBalances[EURC];
         
-        uint256 ethValue = ((liquidETH + stakedETH + stakingRewards) * ethPrice) / 1e18;
+        uint256 ethValue = ((liquidETH + stakedETH + stakingRewards) * getCurrentETHPrice()) / 1e18;
         uint256 totalAssets = totalStablecoins + ethValue;
         
         ratio = (totalAssets * 1e18) / outstandingATN;
@@ -341,14 +222,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         outstandingATN = amount;
     }
 
-    /**
-     * @notice Update ETH price (in production use oracle)
-     * @param newPrice New ETH price in USDC
-     */
-    function updateETHPrice(uint256 newPrice) external onlyOwner {
-        require(newPrice > 0, "Invalid price");
-        ethPrice = newPrice;
-    }
+
 
     /**
      * @notice Update parameters
@@ -358,22 +232,11 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         emit ParameterUpdated("monthlyOpex", newOpex);
     }
 
-    function updateWeeklyDCACap(uint256 newCap) external onlyOwner {
-        weeklyDCACap = newCap;
-        emit ParameterUpdated("weeklyDCACap", newCap);
-    }
 
-    function updateFXArbThreshold(uint256 newThreshold) external onlyOwner {
-        require(newThreshold <= 100, "Threshold too high"); // Max 1%
-        fxArbThreshold = newThreshold;
-        emit ParameterUpdated("fxArbThreshold", newThreshold);
-    }
 
-    function updateETHStakingLimit(uint256 newLimit) external onlyOwner {
-        require(newLimit <= 5000, "Limit too high"); // Max 50%
-        ethStakingLimit = newLimit;
-        emit ParameterUpdated("ethStakingLimit", newLimit);
-    }
+
+
+
 
     /**
      * @notice Internal helper functions
@@ -382,10 +245,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         return asset == USDC || asset == USD1 || asset == EURC;
     }
 
-    function _getImpliedFXRate(address fromAsset, address toAsset) internal pure returns (uint256) {
-        // Simplified - in production use Chainlink oracles or DEX prices
-        return 1e18; // Assume 1:1 for now
-    }
+
 
 
 
@@ -449,10 +309,10 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         
         // Add ETH value (liquid + staked)
         uint256 totalETH = liquidETH + stakedETH;
-        totalValue += (totalETH * ethPrice) / 1e18; // Convert ETH to USDC value
+        totalValue += (totalETH * getCurrentETHPrice()) / 1e18; // Convert ETH to USDC value
         
         // Add staking rewards value
-        totalValue += (stakingRewards * ethPrice) / 1e18;
+        totalValue += (stakingRewards * getCurrentETHPrice()) / 1e18;
     }
 
     /**
@@ -541,7 +401,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
      */
     function _stakeETHIfNeeded() internal {
         uint256 totalETH = liquidETH + stakedETH;
-        uint256 targetStaked = (totalETH * ethStakingLimit) / 10000;
+        uint256 targetStaked = totalETH; // Can stake all ETH via Lido
         
         if (liquidETH > 0 && stakedETH < targetStaked) {
             uint256 toStake = liquidETH;
@@ -596,12 +456,12 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
                 return uint256(price) / 100; // 8 decimals -> 6 decimals
             } catch {
                 // Fallback to manual price if Chainlink fails
-                return manualETHPrice > 0 ? manualETHPrice : ethPrice;
+                return manualETHPrice;
             }
         }
         
         // Fallback to manual or default price
-        return manualETHPrice > 0 ? manualETHPrice : ethPrice;
+        return manualETHPrice;
     }
 
     /**
@@ -748,7 +608,15 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
     }
     
     /**
-     * @notice Process inflows with automated 80/20 routing
+     * @notice Process inflows with automated 80/20 routing (public interface)
+     * @param totalInflow Total inflow amount in USDC terms
+     */
+    function processInflowAutomated(uint256 totalInflow) external {
+        _processInflowAutomated(totalInflow);
+    }
+
+    /**
+     * @notice Process inflows with automated 80/20 routing (internal)
      * @param totalInflow Total inflow amount in USDC terms
      */
     function _processInflowAutomated(uint256 totalInflow) internal {
