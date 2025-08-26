@@ -11,7 +11,7 @@ import "./interfaces/ITreasury.sol";
 import "./interfaces/IBuyback.sol";
 import "./interfaces/IAttestationEmitter.sol";
 import "./adapters/AaveAdapter.sol";
-import "./adapters/LidoAdapter.sol";
+import "./adapters/cbETHAdapter.sol";
 
 /**
  * @title Treasury
@@ -452,8 +452,18 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
                 require(price > 0, "Invalid price");
                 require(updatedAt > block.timestamp - 3600, "Price too stale"); // 1 hour staleness check
                 
-                // Chainlink ETH/USD has 8 decimals, convert to 6 decimals (USDC)
-                return uint256(price) / 100; // 8 decimals -> 6 decimals
+                // Deviation check: if price changes >20% from last known, use last good price
+                uint256 newPrice = uint256(price) / 100; // 8 decimals -> 6 decimals
+                if (manualETHPrice > 0) {
+                    uint256 deviation = newPrice > manualETHPrice 
+                        ? ((newPrice - manualETHPrice) * 10000) / manualETHPrice
+                        : ((manualETHPrice - newPrice) * 10000) / manualETHPrice;
+                    if (deviation > 2000) { // 20% deviation
+                        return manualETHPrice; // Use last good price
+                    }
+                }
+                
+                return newPrice;
             } catch {
                 // Fallback to manual price if Chainlink fails
                 return manualETHPrice;
@@ -517,18 +527,34 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
     }
     
     /**
-     * @notice Chainlink Automation - Perform upkeep
+     * @notice Chainlink Automation - Perform upkeep with proper sequencing
      * @param performData Encoded data from checkUpkeep
+     * @dev Sequence: 1) Harvest yields → 2) DCA to ETH → 3) Trigger buybacks
      */
     function performUpkeep(bytes calldata performData) external override {
         (bool harvestNeeded, bool dcaNeeded) = abi.decode(performData, (bool, bool));
         
+        // Step 1: Harvest yields first (adds to treasury)
         if (harvestNeeded) {
             _performAutomatedHarvest();
         }
         
+        // Step 2: DCA to ETH (uses treasury funds)
         if (dcaNeeded) {
-            _performAutomatedDCA();
+            // Check safety gates before DCA
+            (bool runwayOK, bool crOK) = getSafetyGateStatus();
+            if (runwayOK && crOK) {
+                _performAutomatedDCA();
+            }
+        }
+        
+        // Step 3: Trigger buyback if conditions met (uses allocated funds)
+        if (buyback != address(0)) {
+            try IBuyback(buyback).executeBuyback() {
+                // Buyback executed successfully
+            } catch {
+                // Buyback failed due to safety gates or timing
+            }
         }
     }
     
@@ -677,8 +703,8 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleIn
         aaveAdapter = AaveAdapter(_aaveAdapter);
     }
     
-    function setLidoAdapter(address payable _lidoAdapter) external onlyOwner {
-        lidoAdapter = LidoAdapter(_lidoAdapter);
+    function setcbETHAdapter(address payable _cbETHAdapter) external onlyOwner {
+        cbETHAdapter = cbETHAdapter(_cbETHAdapter);
     }
 
     /**

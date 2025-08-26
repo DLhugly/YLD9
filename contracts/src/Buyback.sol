@@ -89,8 +89,8 @@ contract Buyback is Ownable, ReentrancyGuard {
     uint256 public twapSlippage = 300; // 3% max slippage
     
     /// @notice Buyback split: 90% burn, 10% LP pairing (matching docs)
-    uint256 public constant BURN_PERCENTAGE = 9000; // 90%
-    uint256 public constant LP_PAIRING_PERCENTAGE = 1000; // 10%
+    uint256 public constant BURN_PERCENTAGE = 9000; // 90% in basis points
+    uint256 public constant LP_PAIRING_PERCENTAGE = 1000; // 10% in basis points
     uint256 public constant MAX_BPS = 10000;
     
     /// @notice LP stakers who can vote on buyback parameters
@@ -163,6 +163,13 @@ contract Buyback is Ownable, ReentrancyGuard {
         require(block.timestamp >= lastBuybackTime + buybackFrequency, "Too early for buyback");
         require(buybackPool > 0, "No funds in buyback pool");
         
+        // Claim LP fees first and recycle through treasury (adds 1-2% APY)
+        uint256 feesClaimed = claimPoolFees();
+        if (feesClaimed > 0) {
+            // Route LP fees back through 80/20 flywheel
+            ITreasury(treasury).processInflowAutomated(feesClaimed);
+        }
+        
         // HARD SAFETY GATE 1: Runway must be >= 6 months
         (bool runwayOK, bool crOK) = treasury.getSafetyGateStatus();
         require(runwayOK, "SAFETY GATE: Runway < 6 months");
@@ -185,7 +192,7 @@ contract Buyback is Ownable, ReentrancyGuard {
         
         // Split AGN: 90% burn, 10% LP pairing (matching docs)
         uint256 agnToBurn = (agnBought * BURN_PERCENTAGE) / MAX_BPS;
-        uint256 agnForLP = agnBought - agnToBurn;
+        uint256 agnForLP = agnBought - agnToBurn; // Ensures no rounding loss
         
         // Burn AGN tokens (send to burn address)
         _burnAGN(agnToBurn);

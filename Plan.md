@@ -32,9 +32,9 @@ This setup creates a **virtuous cycle** that aligns with your "most sustainable 
 
 3. **Simple USDC Bonds**: Users deposit USDC → receive 10% discounted AGN (7-day vest). 100% proceeds convert to ETH treasury. **Why High ROI**: Direct ETH accumulation without liquidity complexity. At $5M raise, $1M in bonds = $1M more ETH backing, strengthening TPT metric directly.
 
-4. **Core Staking Vault**: USDC staking via fixed Aave integration (8-12% APR), ETH staking via Lido (~4% APR). 5% protocol fee funds buybacks. AGN lockers get +5% yield boost (funded from 20% of fees). **ROI Calc**: $2M TVL → $100-200K gross yield → $5-10K fees → $4-8K buybacks. Simple, predictable, no rebalancing complexity.
+4. **Core Staking Vault**: USDC staking via fixed Aave integration (8-12% APR), ETH staking via cbETH (~3-4% APR). 5% protocol fee funds buybacks. AGN lockers get +5% yield boost (funded from 20% of fees). **ROI Calc**: $2M TVL → $100-200K gross yield → $5-10K fees → $4-8K buybacks. Simple, predictable, no rebalancing complexity.
 
-5. **Pure ETH Treasury Focus**: No complex POL management, FX arbitrage, or multi-asset complications. 100% focus on ETH accumulation and staking via Lido. **Deeper Fit**: MicroStrategy-style simplicity with maximum ETH exposure. Treasury value = ETH price * ETH amount. TPT grows mechanically with ETH appreciation.
+5. **Pure ETH Treasury Focus**: No complex POL management, FX arbitrage, or multi-asset complications. 100% focus on ETH accumulation and staking via cbETH. **Deeper Fit**: MicroStrategy-style simplicity with maximum ETH exposure. Treasury value = ETH price * ETH amount. TPT grows mechanically with ETH appreciation.
 
 **Overall Viability**: 9/10. It will work because it's bootstrapped (launch funds treasury), sustainable (no emissions, fee compounding), and safe (gates in Treasury.sol). Similar to OHM + MicroStrategy, but with AI and L2 efficiency. At $5M raise, expect $1-2M TVL in 3 months via bonds/yield, with AGN price tied to TPT growth.
 
@@ -47,7 +47,7 @@ Deeper reflection on potential pitfalls at launch scale:
 
 2. **Low Initial Liquidity**: Weak pools = high slippage for buybacks. **Mitigation**: Pre-seed pools with 10-20% of treasury ETH; set minLiquidityThreshold in Buyback.sol to pause if < $50K depth.
 
-3. **Yield Drought**: If base yield <5%, flywheel stalls. **Mitigation**: Start with conservative venues (Aave/WLF); add restaking for buffer. AI oracle can downscale buybacks if yield low.
+3. **Yield Drought**: If base yield <5%, flywheel stalls. **Mitigation**: Start with conservative venues (Aave); add restaking for buffer. AI oracle can downscale buybacks if yield low.
 
 4. **Bond Adoption**: If bonds don't fill, liquidity stays low. **Mitigation**: Start with aggressive discounts (10-15%) for locked AGN holders; marketing as "guaranteed yield + AGN upside."
 
@@ -70,11 +70,11 @@ Here's a **pragmatic timeline** to make this reality, leveraging our tested code
 
 2. **Token Launch ($5M-$10M Raise)**:
    - **Supply Release**: 30% of 200M AGN (60M tokens) at $0.1/AGN → $6M raise. Vest 50% over 3 months.
-   - **Proceeds Allocation**: 100% to Treasury.sol as ETH (via weeklyDCA with initial cap override).
-   - **Initial POL Seed**: Use 10% of treasury ETH to seed AGN/USDC and AGN/ETH pools via POLManager.sol.
+   - **Proceeds Allocation**: 100% to Treasury.sol as ETH (via DCA with initial cap override).
+   - **Initial POL Seed**: Use 10% of treasury ETH to seed AGN/USDC and AGN/ETH pools.
 
 3. **Post-Launch Activation (Day 1)**:
-   - **Yield On**: Vault live with Aave/WLF; treasury starts staking 20% ETH + 10% restaking.
+   - **Yield On**: Vault live with Aave; treasury starts staking 20% ETH + 10% restaking.
    - **Bonds Open**: Launch POL bonds with 10% discount for stables deposits.
    - **Buybacks Start**: First weekly execution if gates green (fund from initial yield).
 
