@@ -64,7 +64,7 @@ contract AaveAdapter is Ownable {
         IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
         
         // Approve Aave Pool to spend the asset
-        IERC20(asset).safeApprove(AAVE_POOL, amount);
+        IERC20(asset).approve(AAVE_POOL, amount);
         
         // Supply asset to Aave Pool
         aavePool.supply(asset, amount, address(this), 0);
@@ -129,17 +129,13 @@ contract AaveAdapter is Ownable {
                 uint256,
                 uint256,
                 uint256,
-                uint256,
-                uint256,
-                uint256,
-                uint256,
                 uint256 liquidityRate,
                 uint256,
-                address,
-                address,
-                address,
-                address,
-                uint128
+                uint256,
+                uint256,
+                uint256,
+                uint256,
+                uint40
             ) {
                 // Aave returns rates in ray units (1e27), convert to 1e18
                 apy = liquidityRate / 1e9; // 1e27 -> 1e18
