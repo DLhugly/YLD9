@@ -152,40 +152,40 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
 
     /**
      * @notice Withdraw staked assets
-     * @param asset Address of asset to withdraw
+     * @param assetAddress Address of asset to withdraw
      * @param shares Amount of shares to burn
      * @return amount Amount of asset withdrawn
      */
-    function withdraw(address asset, uint256 shares) external nonReentrant returns (uint256 amount) {
+    function withdraw(address assetAddress, uint256 shares) external nonReentrant returns (uint256 amount) {
         require(shares > 0, "Shares must be > 0");
-        require(userAssetShares[msg.sender][asset] >= shares, "Insufficient shares");
+        require(userAssetShares[msg.sender][assetAddress] >= shares, "Insufficient shares");
 
         // Calculate withdrawal amount (1:1 for simplicity)
         amount = shares;
 
         // Withdraw from yield strategies
-        if (asset == address(USDC)) {
-            aaveAdapter.withdraw(asset, amount);
+        if (assetAddress == address(USDC)) {
+            aaveAdapter.withdraw(assetAddress, amount);
         } else {
             lidoAdapter.unstake(amount);
         }
 
         // Update state
-        assetInfo[asset].totalDeposited -= amount;
-        userAssetShares[msg.sender][asset] -= shares;
+        assetInfo[assetAddress].totalDeposited -= amount;
+        userAssetShares[msg.sender][assetAddress] -= shares;
         totalShares -= shares;
 
         // Burn vault shares
         _burn(msg.sender, shares);
 
         // Transfer asset to user
-        IERC20(asset).safeTransfer(msg.sender, amount);
+        IERC20(assetAddress).safeTransfer(msg.sender, amount);
 
-        emit Withdrawn(msg.sender, asset, amount, shares);
+        emit Withdrawn(msg.sender, assetAddress, amount, shares);
         
         attestationEmitter.emitStakingWithdraw(
             msg.sender,
-            asset,
+            assetAddress,
             amount,
             shares,
             block.timestamp
@@ -320,8 +320,8 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Get user's effective yield rate for an asset
      */
-    function getUserYieldRate(address user, address asset) external view returns (uint256) {
-        uint256 baseRate = getAssetYieldRate(asset);
+    function getUserYieldRate(address user, address assetAddress) external view returns (uint256) {
+        uint256 baseRate = getAssetYieldRate(assetAddress);
         uint256 multiplier = getBoostMultiplier(user);
         return (baseRate * multiplier) / 10000;
     }
@@ -329,10 +329,10 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Get base yield rate for an asset
      */
-    function getAssetYieldRate(address asset) public view returns (uint256) {
-        if (asset == address(USDC)) {
-            return aaveAdapter.getCurrentAPY(asset);
-        } else if (asset == address(WETH)) {
+    function getAssetYieldRate(address assetAddress) public view returns (uint256) {
+        if (assetAddress == address(USDC)) {
+            return aaveAdapter.getCurrentAPY(assetAddress);
+        } else if (assetAddress == address(WETH)) {
             return lidoAdapter.getCurrentAPY();
         }
         return 0;
@@ -389,11 +389,11 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
     /**
      * @notice Emergency withdrawal of assets (only if paused)
      */
-    function emergencyWithdraw(address asset) external onlyOwner {
+    function emergencyWithdraw(address assetAddress) external onlyOwner {
         require(paused, "Not paused");
-        uint256 balance = IERC20(asset).balanceOf(address(this));
+        uint256 balance = IERC20(assetAddress).balanceOf(address(this));
         if (balance > 0) {
-            IERC20(asset).safeTransfer(owner(), balance);
+            IERC20(assetAddress).safeTransfer(owner(), balance);
         }
     }
 
