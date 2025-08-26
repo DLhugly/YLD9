@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-// import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol"; // TODO: Add Chainlink dependency
+import "chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBuyback.sol";
 import "./interfaces/IAttestationEmitter.sol";
@@ -28,7 +28,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice External contracts
     IBuyback public buyback;
     IAttestationEmitter public attestationEmitter;
-    // AggregatorV3Interface public ethUsdPriceFeed; // TODO: Add Chainlink dependency
+    AggregatorV3Interface public ethUsdPriceFeed;
     
     /// @notice Manual ETH price (fallback)
     uint256 public manualETHPrice;
@@ -99,6 +99,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     event ParameterUpdated(string param, uint256 value);
     event TPTPublished(uint256 tptValue, uint256 totalTreasuryValue, uint256 circulatingSupply, uint256 timestamp);
     event InflowProcessed(uint256 usdcAmount, uint256 ethAmount, uint256 buybackAmount, uint256 holdAmount);
+    event PriceFeedUpdated(address indexed priceFeed);
 
         constructor(
         address _usdc,
@@ -559,7 +560,27 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
      * @notice Get current ETH price
      */
     function getCurrentETHPrice() public view returns (uint256) {
-        return ethPrice;
+        if (address(ethUsdPriceFeed) != address(0)) {
+            try ethUsdPriceFeed.latestRoundData() returns (
+                uint80 roundId,
+                int256 price,
+                uint256 startedAt,
+                uint256 updatedAt,
+                uint80 answeredInRound
+            ) {
+                require(price > 0, "Invalid price");
+                require(updatedAt > block.timestamp - 3600, "Price too stale"); // 1 hour staleness check
+                
+                // Chainlink ETH/USD has 8 decimals, convert to 6 decimals (USDC)
+                return uint256(price) / 100; // 8 decimals -> 6 decimals
+            } catch {
+                // Fallback to manual price if Chainlink fails
+                return manualETHPrice > 0 ? manualETHPrice : ethPrice;
+            }
+        }
+        
+        // Fallback to manual or default price
+        return manualETHPrice > 0 ? manualETHPrice : ethPrice;
     }
 
     /**
@@ -583,8 +604,20 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     }
 
     function setETHPriceFeed(address _priceFeed) external onlyOwner {
-        // ethUsdPriceFeed = AggregatorV3Interface(_priceFeed); // TODO: Add Chainlink dependency
-        manualETHPrice = 2000e6; // Temporary fallback price
+        require(_priceFeed != address(0), "Invalid price feed");
+        ethUsdPriceFeed = AggregatorV3Interface(_priceFeed);
+        
+        // Verify the price feed works
+        try ethUsdPriceFeed.latestRoundData() returns (
+            uint80, int256 price, uint256, uint256 updatedAt, uint80
+        ) {
+            require(price > 0, "Invalid initial price");
+            require(updatedAt > 0, "Invalid update time");
+        } catch {
+            revert("Price feed verification failed");
+        }
+        
+        emit PriceFeedUpdated(_priceFeed);
     }
 
     /**

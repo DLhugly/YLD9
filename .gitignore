@@ -50,3 +50,18 @@ coverage/
 # Foundry
 cache/
 artifacts/
+out/
+broadcast/
+lib/
+
+# Foundry dependencies (use git submodules instead)
+contracts/lib/
+**/lib/openzeppelin-contracts/
+**/lib/forge-std/
+**/lib/aave-v3-core/
+**/lib/chainlink-brownie-contracts/
+
+# Foundry build artifacts
+**/cache/
+**/out/
+**/broadcast/

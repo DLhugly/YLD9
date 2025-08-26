@@ -21,6 +21,7 @@ contract DeployAgonic is Script {
     address constant EURC = address(0x2); // Placeholder for EURC  
     address constant WETH = 0x4200000000000000000000000000000000000006; // Base WETH
     address constant AGN_TOKEN = address(0x4); // Mock AGN token address
+    address constant ETH_USD_PRICE_FEED = 0x71041dddad3595F9CEd3DcCFBe3D1F4b0a16Bb70; // Chainlink ETH/USD on Base
 
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -90,6 +91,10 @@ contract DeployAgonic is Script {
         
         // Set attestation emitter in treasury
         treasury.setAttestationEmitter(address(attestationEmitter));
+        
+        // Set Chainlink ETH/USD price feed
+        console.log("Setting Chainlink ETH/USD price feed...");
+        treasury.setETHPriceFeed(ETH_USD_PRICE_FEED);
         
         // Note: AaveAdapter configuration would need to be done separately
         
