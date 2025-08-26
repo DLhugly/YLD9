@@ -38,7 +38,7 @@ export async function quoteUni(tokenIn: Address, tokenOut: Address, amountIn: bi
     try {
       const amountOut = await publicClient.readContract({
         address: UNIV3_QUOTER_V2,
-        abi: QUOTER_V2_ABI as const,
+        abi: QUOTER_V2_ABI,
         functionName: "quoteExactInputSingle",
         args: [{ tokenIn, tokenOut, fee, amountIn, sqrtPriceLimitX96: 0n }],
       }) as bigint;

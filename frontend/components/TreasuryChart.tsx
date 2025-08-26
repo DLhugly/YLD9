@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useReadContract } from "wagmi";
-import { formatEther } from "viem";
+import { useState } from "react";
+import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 
 /**
  * TreasuryChart component - ETH accumulation and automated yield tracking
@@ -12,44 +11,19 @@ export const TreasuryChart = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<"1W" | "1M" | "3M" | "1Y">("1M");
   const [showYieldLogs, setShowYieldLogs] = useState(false);
 
-  // Treasury contract address from environment
-  const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS || "0x0000000000000000000000000000000000000000";
-  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA !== "false";
 
-  // Read treasury data (mock for now)
-  const { data: ethBreakdown } = useReadContract({
-    address: TREASURY_ADDRESS,
-    abi: [
-      {
-        name: "getETHBreakdown",
-        type: "function",
-        stateMutability: "view",
-        inputs: [],
-        outputs: [
-          { name: "liquid", type: "uint256" },
-          { name: "staked", type: "uint256" },
-          { name: "rewards", type: "uint256" }
-        ]
-      }
-    ],
-    functionName: "getETHBreakdown"
+  // Read treasury data using scaffold hooks
+  const { data: ethBreakdown } = useScaffoldReadContract({
+    contractName: "Treasury",
+    functionName: "getETHBreakdown",
+    watch: true
   });
 
-  const { data: safetyGates } = useReadContract({
-    address: TREASURY_ADDRESS,
-    abi: [
-      {
-        name: "getSafetyGateStatus", 
-        type: "function",
-        stateMutability: "view",
-        inputs: [],
-        outputs: [
-          { name: "runwayOK", type: "bool" },
-          { name: "crOK", type: "bool" }
-        ]
-      }
-    ],
-    functionName: "getSafetyGateStatus"
+  const { data: safetyGates } = useScaffoldReadContract({
+    contractName: "Treasury", 
+    functionName: "getSafetyGateStatus",
+    watch: true
   });
 
   // Mock data for development
@@ -219,14 +193,14 @@ export const TreasuryChart = () => {
       {/* Toggle Buttons */}
       <div className="flex gap-2 mb-4">
         <button
-          className={`btn btn-sm ${showFXLogs ? "btn-outline" : "btn-primary"}`}
-          onClick={() => setShowFXLogs(false)}
+          className={`btn btn-sm ${showYieldLogs ? "btn-outline" : "btn-primary"}`}
+          onClick={() => setShowYieldLogs(false)}
         >
           DCA History
         </button>
         <button
-          className={`btn btn-sm ${showFXLogs ? "btn-primary" : "btn-outline"}`}
-          onClick={() => setShowFXLogs(true)}
+          className={`btn btn-sm ${showYieldLogs ? "btn-primary" : "btn-outline"}`}
+          onClick={() => setShowYieldLogs(true)}
         >
           FX Arbitrage
         </button>
@@ -235,12 +209,12 @@ export const TreasuryChart = () => {
       {/* Transaction Logs */}
       <div className="bg-base-200 rounded-2xl p-4">
         <h3 className="font-semibold mb-3 flex items-center">
-          <span className="text-lg mr-2">{showFXLogs ? "⚡" : "🔄"}</span>
-          {showFXLogs ? "FX Arbitrage Log" : "DCA Purchase History"}
+          <span className="text-lg mr-2">{showYieldLogs ? "⚡" : "🔄"}</span>
+          {showYieldLogs ? "FX Arbitrage Log" : "DCA Purchase History"}
         </h3>
         
         <div className="space-y-2 max-h-48 overflow-y-auto">
-          {showFXLogs ? (
+          {showYieldLogs ? (
             mockFXArbitrage.map((tx, index) => (
               <div key={index} className="flex items-center justify-between p-3 bg-base-100 rounded-lg">
                 <div className="flex items-center gap-3">

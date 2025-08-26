@@ -23,10 +23,10 @@ export const StakingVaultCard = () => {
   const [lockDuration, setLockDuration] = useState(90); // days
 
   // Contract addresses from environment
-  const STAKING_VAULT_ADDRESS = process.env.NEXT_PUBLIC_STAKING_VAULT_ADDRESS || "0x0000000000000000000000000000000000000000";
-  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
-  const WETH_ADDRESS = "0x4200000000000000000000000000000000000006"; // Base WETH
-  const AGN_ADDRESS = process.env.NEXT_PUBLIC_AGN_TOKEN_ADDRESS || "0x0000000000000000000000000000000000000000";
+  const STAKING_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_STAKING_VAULT_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`; // Base USDC
+  const WETH_ADDRESS = "0x4200000000000000000000000000000000000006" as `0x${string}`; // Base WETH
+  const AGN_ADDRESS = (process.env.NEXT_PUBLIC_AGN_TOKEN_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
   const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
   // Asset configuration
@@ -176,8 +176,7 @@ export const StakingVaultCard = () => {
           }
         ],
         functionName: "deposit",
-        args: [assets[selectedAsset].address, amount],
-        value: selectedAsset === "ETH" ? amount : undefined
+        args: [assets[selectedAsset].address, amount]
       });
 
       notification.success("Staking transaction submitted!");
@@ -240,7 +239,7 @@ export const StakingVaultCard = () => {
           }
         ],
         functionName: "lockAGN",
-        args: [amount, duration]
+        args: [amount, BigInt(duration)]
       });
 
       notification.success("AGN lock transaction submitted!");

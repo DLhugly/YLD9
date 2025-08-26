@@ -35,7 +35,7 @@ export async function quoteAero(tokenIn: Address, tokenOut: Address, amountIn: b
   try {
     const amounts = await publicClient.readContract({
       address: AERODROME_ROUTER,
-      abi: AERO_ROUTER_ABI as const,
+      abi: AERO_ROUTER_ABI,
       functionName: "getAmountsOut",
       args: [amountIn, route],
     }) as bigint[];

@@ -19,8 +19,8 @@ export const SimpleBondCard = () => {
   const [selectedBondId, setSelectedBondId] = useState<number | null>(null);
 
   // Contract addresses from environment
-  const SIMPLE_BOND_ADDRESS = process.env.NEXT_PUBLIC_SIMPLE_BOND_ADDRESS || "0x0000000000000000000000000000000000000000";
-  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
+  const SIMPLE_BOND_ADDRESS = (process.env.NEXT_PUBLIC_SIMPLE_BOND_ADDRESS || "0x0000000000000000000000000000000000000000") as `0x${string}`;
+  const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" as `0x${string}`; // Base USDC
   const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
   // Read contract data
@@ -168,7 +168,7 @@ export const SimpleBondCard = () => {
           }
         ],
         functionName: "claimMultiple",
-        args: [bondIds]
+        args: [bondIds.map(id => BigInt(id))]
       });
 
       notification.success("Claim transaction submitted!");

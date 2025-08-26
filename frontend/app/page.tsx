@@ -6,11 +6,12 @@ import { useAccount } from "wagmi";
 import { SimpleBondCard } from "~~/components/SimpleBondCard";
 import { StakingVaultCard } from "~~/components/StakingVaultCard";
 import { TreasuryChart } from "~~/components/TreasuryChart";
+import { AutomationPerformance } from "~~/components/AutomationPerformance";
 import { Address } from "~~/components/scaffold-eth";
 
 /**
- * Agonic Dashboard - ETH Treasury Fortress theme
- * Based on UI_FRONTEND.md specifications
+ * Agonic Protocol Dashboard - Ultra-Simple Automated Treasury
+ * 80/20 Automated Flywheel: 80% stable-first, 20% growth/buyback
  */
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
@@ -20,26 +21,32 @@ const Home: NextPage = () => {
   const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
   
   const mockData = {
-    totalTVL: 2450000,
-    currentAPY: 8.5, // Realistic Aave USDC APY
-    ethReserves: 58.6,
+    totalTVL: 2450000, // $2.45M TVL
+    currentAPY: 12.4, // 80/20 automation APY (Aave + Lido + buybacks)
+    ethReserves: 58.6, // ETH accumulated via DCA
     agnPrice: 0.85,
     buybacksActive: true,
-    runwayMonths: 12, // Target runway
-    coverageRatio: 1.45,
-    automatedYield: 2847 // Aave + Lido yields (not FX arbitrage)
+    runwayMonths: 18, // Strong runway from 80% stable allocation
+    coverageRatio: 1.65, // Healthy coverage from ETH backing
+    automatedYield: 4200, // Weekly automated yields (USDC + ETH)
+    burnRate: 90, // 90% burn rate from buybacks
+    stableAllocation: 80, // 80% to stable yields
+    growthAllocation: 20 // 20% to ETH DCA + buybacks
   };
 
   // TODO: Real contract data (when useMockData = false)
   const realData = {
     totalTVL: 0, // Treasury.getTotalTreasuryValue()
-    currentAPY: 0, // AaveAdapter.getCurrentAPY()
+    currentAPY: 0, // Calculate from Aave + Lido yields + buyback returns
     ethReserves: 0, // Treasury.liquidETH + stakedETH
     agnPrice: 0, // Treasury.getAGNPrice()
     buybacksActive: false, // Check Buyback.lastBuybackTime
-    runwayMonths: 0, // Calculate from Treasury.stablecoinBalances
-    coverageRatio: 0, // Treasury.getSafetyGateStatus()
-    automatedYield: 0 // Sum of adapter yields
+    runwayMonths: 0, // Calculate from Treasury.getRunwayMonths()
+    coverageRatio: 0, // Treasury.getCoverageRatio()
+    automatedYield: 0, // Sum of StakingVault + Treasury yields
+    burnRate: 90, // Fixed 90% burn rate
+    stableAllocation: 80, // Fixed 80% stable allocation
+    growthAllocation: 20 // Fixed 20% growth allocation
   };
 
   const protocolData = useMockData ? mockData : realData;
@@ -210,22 +217,26 @@ const Home: NextPage = () => {
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-base-content/70">USDC Buffer:</span>
-                    <span className="font-medium">60%</span>
+                    <span className="text-base-content/70">Stable Allocation:</span>
+                    <span className="font-medium text-success">{protocolData.stableAllocation}%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-base-content/70">Aave Yield:</span>
-                    <span className="font-medium">20%</span>
+                    <span className="text-base-content/70">Growth Allocation:</span>
+                    <span className="font-medium text-warning">{protocolData.growthAllocation}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-base-content/70">ETH DCA:</span>
-                    <span className="font-medium">10%</span>
+                    <span className="font-medium text-info">10%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-base-content/70">AGN Buybacks:</span>
-                    <span className="font-medium">10%</span>
+                    <span className="font-medium text-error">10%</span>
                   </div>
                   <div className="border-t pt-3">
+                    <div className="flex justify-between">
+                      <span className="text-base-content/70">Burn Rate:</span>
+                      <span className="font-medium text-error">{protocolData.burnRate}%</span>
+                    </div>
                     <div className="flex justify-between">
                       <span className="text-base-content/70">Net APY:</span>
                       <span className="font-medium text-success">{protocolData.currentAPY}%</span>
@@ -265,26 +276,9 @@ const Home: NextPage = () => {
                 </div>
               </div>
 
-              {/* Automated Yield Performance */}
-              <div className="bg-base-100 rounded-3xl p-6 shadow-md lg:col-span-2 xl:col-span-3">
-                <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <span className="text-xl mr-2">🤖</span>
-                  Automated Yield Performance
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-success">${protocolData.automatedYield}</div>
-                    <div className="text-sm text-base-content/70">Total Yield Generated</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-info">7 days</div>
-                    <div className="text-sm text-base-content/70">Harvest Frequency</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-warning">90%</div>
-                    <div className="text-sm text-base-content/70">AGN Burn Rate</div>
-                  </div>
-                </div>
+              {/* Automation Performance Component */}
+              <div className="lg:col-span-2 xl:col-span-3">
+                <AutomationPerformance />
               </div>
             </div>
           )}
