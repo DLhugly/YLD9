@@ -6,16 +6,19 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "chainlink-brownie-contracts/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import "chainlink-brownie-contracts/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBuyback.sol";
 import "./interfaces/IAttestationEmitter.sol";
+import "./adapters/AaveAdapter.sol";
+import "./adapters/LidoAdapter.sol";
 
 /**
  * @title Treasury
  * @notice Manages ETH accumulation, DCA purchases, FX arbitrage, and ETH staking
  * @dev Implements MicroStrategy-style ETH treasury with safety gates
  */
-contract Treasury is ITreasury, Ownable, ReentrancyGuard {
+contract Treasury is ITreasury, Ownable, ReentrancyGuard, AutomationCompatibleInterface {
     using SafeERC20 for IERC20;
 
     /// @notice Supported stablecoin addresses
@@ -29,6 +32,8 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     IBuyback public buyback;
     IAttestationEmitter public attestationEmitter;
     AggregatorV3Interface public ethUsdPriceFeed;
+    AaveAdapter public aaveAdapter;
+    LidoAdapter public lidoAdapter;
     
     /// @notice Manual ETH price (fallback)
     uint256 public manualETHPrice;
@@ -45,11 +50,24 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice Monthly operational expenses in USDC
     uint256 public monthlyOpex = 50000e6; // $50k USDC
     
-    /// @notice Auto-buyback split (80% burn, 20% treasury)
-    uint256 public constant BURN_BPS = 8000; // 80%
-    uint256 public constant TREASURY_BPS = 2000; // 20%
+    /// @notice 80/20 Automated Router Constants
+    uint256 public constant STABLE_ALLOCATION_BPS = 8000; // 80% to stables
+    uint256 public constant GROWTH_ALLOCATION_BPS = 2000; // 20% to growth/buyback
+    uint256 public constant ETH_DCA_BPS = 1000; // 10% to ETH DCA (within 20%)
+    uint256 public constant BUYBACK_BPS = 1000; // 10% to AGN buybacks (within 20%)
+    
+    /// @notice Automation timing
+    uint256 public lastHarvestTime;
+    uint256 public lastDCATime;
+    uint256 public harvestInterval = 7 days; // Weekly harvests
+    uint256 public dcaInterval = 7 days; // Weekly DCA
+    
+    /// @notice Runway and buffer management
+    uint256 public targetRunwayMonths = 12; // 12-month runway target
+    uint256 public minBufferRatio = 1500; // 15% minimum buffer (1.5x safety factor)
     
     /// @notice Burn throttle when safety gates are low
+    uint256 public constant BURN_BPS = 9000; // 90% burn rate when safety gates OK
     uint256 public constant LOW_SAFETY_BURN_BPS = 5000; // 50% when runway/CR low
     
     /// @notice ETH staking allocation limit (basis points)
@@ -100,6 +118,9 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     event TPTPublished(uint256 tptValue, uint256 totalTreasuryValue, uint256 circulatingSupply, uint256 timestamp);
     event InflowProcessed(uint256 usdcAmount, uint256 ethAmount, uint256 buybackAmount, uint256 holdAmount);
     event PriceFeedUpdated(address indexed priceFeed);
+    event AutomatedHarvest(uint256 aaveYield, uint256 lidoRewards, uint256 totalYield);
+    event AutomatedDCA(uint256 usdcAmount, uint256 ethAmount, uint256 ethPrice);
+    event AutomatedRouting(uint256 stableAmount, uint256 ethAmount, uint256 buybackAmount);
 
         constructor(
         address _usdc,
@@ -618,6 +639,178 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
         }
         
         emit PriceFeedUpdated(_priceFeed);
+    }
+
+    /**
+     * @notice Chainlink Automation - Check if upkeep is needed
+     * @return upkeepNeeded Whether upkeep should be performed
+     * @return performData Encoded data for performUpkeep
+     */
+    function checkUpkeep(bytes calldata) external view override returns (bool upkeepNeeded, bytes memory performData) {
+        bool harvestNeeded = (block.timestamp >= lastHarvestTime + harvestInterval);
+        bool dcaNeeded = (block.timestamp >= lastDCATime + dcaInterval);
+        
+        if (harvestNeeded || dcaNeeded) {
+            upkeepNeeded = true;
+            performData = abi.encode(harvestNeeded, dcaNeeded);
+        }
+    }
+    
+    /**
+     * @notice Chainlink Automation - Perform upkeep
+     * @param performData Encoded data from checkUpkeep
+     */
+    function performUpkeep(bytes calldata performData) external override {
+        (bool harvestNeeded, bool dcaNeeded) = abi.decode(performData, (bool, bool));
+        
+        if (harvestNeeded) {
+            _performAutomatedHarvest();
+        }
+        
+        if (dcaNeeded) {
+            _performAutomatedDCA();
+        }
+    }
+    
+    /**
+     * @notice Perform automated harvest of all yield sources
+     */
+    function _performAutomatedHarvest() internal {
+        uint256 aaveYield = 0;
+        uint256 lidoRewards = 0;
+        
+        // Harvest Aave yield
+        if (address(aaveAdapter) != address(0)) {
+            try aaveAdapter.harvest() returns (uint256 yield) {
+                aaveYield = yield;
+            } catch {
+                // Continue if harvest fails
+            }
+        }
+        
+        // Harvest Lido rewards  
+        if (address(lidoAdapter) != address(0)) {
+            try lidoAdapter.harvest() returns (uint256 rewards) {
+                lidoRewards = rewards;
+            } catch {
+                // Continue if harvest fails
+            }
+        }
+        
+        uint256 totalYield = aaveYield + lidoRewards;
+        
+        if (totalYield > 0) {
+            // Route harvested yield through 80/20 automation
+            _processInflowAutomated(totalYield);
+        }
+        
+        lastHarvestTime = block.timestamp;
+        emit AutomatedHarvest(aaveYield, lidoRewards, totalYield);
+    }
+    
+    /**
+     * @notice Perform automated ETH DCA purchase
+     */
+    function _performAutomatedDCA() internal {
+        // Calculate available USDC for DCA (from 10% allocation)
+        uint256 availableUSDC = stablecoinBalances[USDC];
+        
+        // Only proceed if we have sufficient buffer
+        uint256 requiredBuffer = monthlyOpex * targetRunwayMonths;
+        if (availableUSDC <= requiredBuffer) {
+            return; // Skip DCA if runway is at risk
+        }
+        
+        uint256 excessUSDC = availableUSDC - requiredBuffer;
+        uint256 dcaAmount = (excessUSDC * ETH_DCA_BPS) / 10000; // 10% of excess for DCA
+        
+        if (dcaAmount > 0) {
+            uint256 currentETHPrice = getCurrentETHPrice();
+            uint256 ethAmount = (dcaAmount * 1e18) / currentETHPrice;
+            
+            // Execute DCA purchase
+            stablecoinBalances[USDC] -= dcaAmount;
+            liquidETH += ethAmount;
+            
+            // Stake ETH via Lido if adapter is available
+            if (address(lidoAdapter) != address(0) && address(this).balance >= ethAmount) {
+                try lidoAdapter.stake{value: ethAmount}() returns (uint256 stETHAmount) {
+                    stakedETH += stETHAmount;
+                    liquidETH -= ethAmount;
+                } catch {
+                    // Keep as liquid ETH if staking fails
+                }
+            }
+            
+            lastDCATime = block.timestamp;
+            emit AutomatedDCA(dcaAmount, ethAmount, currentETHPrice);
+        }
+    }
+    
+    /**
+     * @notice Process inflows with automated 80/20 routing
+     * @param totalInflow Total inflow amount in USDC terms
+     */
+    function _processInflowAutomated(uint256 totalInflow) internal {
+        // 80% to stable allocation (USDC buffer + Aave)
+        uint256 stableAmount = (totalInflow * STABLE_ALLOCATION_BPS) / 10000;
+        
+        // 10% to ETH DCA (handled in DCA automation)
+        uint256 ethAmount = (totalInflow * ETH_DCA_BPS) / 10000;
+        
+        // 10% to AGN buybacks
+        uint256 buybackAmount = (totalInflow * BUYBACK_BPS) / 10000;
+        
+        // Route stable allocation
+        _routeStableAllocation(stableAmount);
+        
+        // Add ETH allocation to pending DCA pool
+        stablecoinBalances[USDC] += ethAmount;
+        
+        // Fund buyback pool
+        if (address(buyback) != address(0) && buybackAmount > 0) {
+            IERC20(USDC).safeTransfer(address(buyback), buybackAmount);
+            try buyback.fundBuybackPool(buybackAmount) {} catch {}
+        }
+        
+        emit AutomatedRouting(stableAmount, ethAmount, buybackAmount);
+    }
+    
+    /**
+     * @notice Route stable allocation between buffer and Aave
+     * @param stableAmount Amount to route
+     */
+    function _routeStableAllocation(uint256 stableAmount) internal {
+        uint256 requiredBuffer = monthlyOpex * targetRunwayMonths;
+        uint256 currentBuffer = stablecoinBalances[USDC];
+        
+        if (currentBuffer < requiredBuffer) {
+            // Fill buffer first
+            uint256 bufferNeeded = requiredBuffer - currentBuffer;
+            uint256 toBuffer = stableAmount > bufferNeeded ? bufferNeeded : stableAmount;
+            stablecoinBalances[USDC] += toBuffer;
+            stableAmount -= toBuffer;
+        }
+        
+        // Deploy excess to Aave for yield
+        if (stableAmount > 0 && address(aaveAdapter) != address(0)) {
+            IERC20(USDC).approve(address(aaveAdapter), stableAmount);
+            try aaveAdapter.deposit(USDC, stableAmount) {} catch {
+                // Keep in buffer if Aave deposit fails
+                stablecoinBalances[USDC] += stableAmount;
+            }
+        }
+    }
+
+    /**
+     * @notice Set adapter contracts
+     */
+    function setAaveAdapter(address _aaveAdapter) external onlyOwner {
+        aaveAdapter = AaveAdapter(_aaveAdapter);
+    }
+    
+    function setLidoAdapter(address payable _lidoAdapter) external onlyOwner {
+        lidoAdapter = LidoAdapter(_lidoAdapter);
     }
 
     /**

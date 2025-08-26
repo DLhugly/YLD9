@@ -25,4 +25,10 @@ interface IBuyback {
      * @return canExecute Whether buyback can be executed
      */
     function canExecuteBuyback(uint256 ethAmount) external view returns (bool canExecute);
+    
+    /**
+     * @notice Fund buyback pool with USDC
+     * @param amount Amount of USDC to add to buyback pool
+     */
+    function fundBuybackPool(uint256 amount) external;
 }
