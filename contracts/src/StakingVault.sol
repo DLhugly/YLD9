@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IAttestationEmitter.sol";
 import "./adapters/AaveAdapter.sol";
@@ -82,7 +82,7 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
         address _attestationEmitter,
         address _aaveAdapter,
         address _lidoAdapter
-    ) ERC20("Agonic Staking Vault", "aSTAKE") {
+    ) ERC20("Agonic Staking Vault", "aSTAKE") Ownable(msg.sender) {
         require(_usdc != address(0), "Invalid USDC");
         require(_weth != address(0), "Invalid WETH");
         require(_agn != address(0), "Invalid AGN");
@@ -106,23 +106,23 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
 
     /**
      * @notice Deposit USDC or WETH for staking
-     * @param asset Address of asset to deposit (USDC or WETH)
+     * @param assetAddress Address of asset to deposit (USDC or WETH)
      * @param amount Amount to deposit
      * @return shares Amount of shares minted
      */
-    function deposit(address asset, uint256 amount) external nonReentrant returns (uint256 shares) {
+    function deposit(address assetAddress, uint256 amount) external nonReentrant returns (uint256 shares) {
         require(!paused, "Vault paused");
-        require(asset == address(USDC) || asset == address(WETH), "Unsupported asset");
+        require(assetAddress == address(USDC) || assetAddress == address(WETH), "Unsupported asset");
         require(amount > 0, "Amount must be > 0");
 
         // Transfer asset from user
-        IERC20(asset).safeTransferFrom(msg.sender, address(this), amount);
+        IERC20(assetAddress).safeTransferFrom(msg.sender, address(this), amount);
 
         // Calculate shares (1:1 for simplicity, can be enhanced later)
         shares = amount;
 
         // Deploy to yield strategies
-        if (asset == address(USDC)) {
+        if (assetAddress == address(USDC)) {
             // Approve and deposit to Aave
             USDC.safeApprove(address(aaveAdapter), amount);
             aaveAdapter.deposit(amount);
@@ -132,18 +132,18 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
         }
 
         // Update state
-        assetInfo[asset].totalDeposited += amount;
-        userAssetShares[msg.sender][asset] += shares;
+        assetInfo[assetAddress].totalDeposited += amount;
+        userAssetShares[msg.sender][assetAddress] += shares;
         totalShares += shares;
 
         // Mint vault shares
         _mint(msg.sender, shares);
 
-        emit Deposited(msg.sender, asset, amount, shares);
+        emit Deposited(msg.sender, assetAddress, amount, shares);
         
         attestationEmitter.emitStakingDeposit(
             msg.sender,
-            asset,
+            assetAddress,
             amount,
             shares,
             block.timestamp

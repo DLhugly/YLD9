@@ -42,7 +42,7 @@ contract DeployAgonic is Script {
 
         // 2. Deploy Treasury
         console.log("Deploying Treasury...");
-        Treasury treasury = new Treasury(USDC, USD1, EURC, WETH);
+        Treasury treasury = new Treasury(USDC, USD1, EURC, WETH, address(0x4)); // AGN address placeholder
         console.log("Treasury deployed at:", address(treasury));
 
         // 3. Deploy StableVault4626

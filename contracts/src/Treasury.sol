@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+// import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol"; // TODO: Add Chainlink dependency
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IBuyback.sol";
 import "./interfaces/IAttestationEmitter.sol";
@@ -28,7 +28,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice External contracts
     IBuyback public buyback;
     IAttestationEmitter public attestationEmitter;
-    AggregatorV3Interface public ethUsdPriceFeed;
+    // AggregatorV3Interface public ethUsdPriceFeed; // TODO: Add Chainlink dependency
     
     /// @notice Manual ETH price (fallback)
     uint256 public manualETHPrice;
@@ -70,8 +70,11 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice Maximum basis points
     uint256 public constant MAX_BPS = 10000;
     
-    /// @notice AGN token for TPT calculations
-    IERC20 public AGN;
+    /// @notice Weekly DCA cap in USDC
+    uint256 public weeklyDCACap = 5000e6; // $5k USDC
+    
+    /// @notice FX arbitrage threshold (basis points)
+    uint256 public fxArbThreshold = 10; // 0.1%
     
     /// @notice TPT (Treasury per Token) history
     struct TPTSnapshot {
@@ -368,7 +371,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
      */
     function setAGNToken(address _agn) external onlyOwner {
         require(_agn != address(0), "Invalid AGN address");
-        AGN = IERC20(_agn);
+        AGN = _agn;
     }
 
     /**
@@ -443,8 +446,8 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
      */
     function getCirculatingSupply() public view returns (uint256 supply) {
         if (address(AGN) != address(0)) {
-            uint256 totalSupply = AGN.totalSupply();
-            uint256 treasuryBalance = AGN.balanceOf(address(this));
+            uint256 totalSupply = IERC20(AGN).totalSupply();
+            uint256 treasuryBalance = IERC20(AGN).balanceOf(address(this));
             supply = totalSupply - treasuryBalance;
         }
     }
@@ -487,7 +490,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
         require(msg.sender == owner() || _isAuthorizedContract(msg.sender), "Unauthorized");
         require(address(AGN) != address(0), "AGN not set");
         
-        AGN.safeTransfer(to, amount);
+        IERC20(AGN).safeTransfer(to, amount);
     }
 
     /**
@@ -560,20 +563,20 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Get current ETH price
+     */
+    function getCurrentETHPrice() public view returns (uint256) {
+        return ethPrice;
+    }
+
+    /**
      * @notice Get AGN price for bond calculations
      */
     function getAGNPrice() external view returns (uint256 price) {
         return 1e18; // $1.00 per AGN (simplified)
     }
 
-    /**
-     * @notice Get circulating AGN supply
-     */
-    function getCirculatingSupply() public view returns (uint256 supply) {
-        uint256 totalSupply = IERC20(AGN).totalSupply();
-        uint256 treasuryHoldings = IERC20(AGN).balanceOf(address(this));
-        return totalSupply - treasuryHoldings;
-    }
+
 
     /**
      * @notice Set external contracts
@@ -587,7 +590,8 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     }
 
     function setETHPriceFeed(address _priceFeed) external onlyOwner {
-        ethUsdPriceFeed = AggregatorV3Interface(_priceFeed);
+        // ethUsdPriceFeed = AggregatorV3Interface(_priceFeed); // TODO: Add Chainlink dependency
+        manualETHPrice = 2000e6; // Temporary fallback price
     }
 
     /**

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./interfaces/ITreasury.sol";
 import "./interfaces/IAttestationEmitter.sol";
 
@@ -73,7 +73,7 @@ contract SimpleBond is Ownable, ReentrancyGuard {
         address _agn,
         address _treasury,
         address _attestationEmitter
-    ) {
+    ) Ownable(msg.sender) {
         require(_usdc != address(0), "Invalid USDC address");
         require(_agn != address(0), "Invalid AGN address");
         require(_treasury != address(0), "Invalid treasury address");

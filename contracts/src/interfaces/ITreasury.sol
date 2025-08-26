@@ -94,4 +94,16 @@ interface ITreasury {
      * @return totalValue Total value including stablecoins and ETH
      */
     function getTotalTreasuryValue() external view returns (uint256 totalValue);
+
+    /**
+     * @notice Get AGN price for bond calculations
+     * @return price AGN price in USDC (18 decimals)
+     */
+    function getAGNPrice() external view returns (uint256 price);
+
+    /**
+     * @notice Process inflow from bonds/staking fees for automatic buybacks
+     * @param usdcAmount Amount of USDC to process
+     */
+    function processInflow(uint256 usdcAmount) external;
 }
