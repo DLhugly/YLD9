@@ -12,8 +12,9 @@ export const TreasuryChart = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<"1W" | "1M" | "3M" | "1Y">("1M");
   const [showYieldLogs, setShowYieldLogs] = useState(false);
 
-  // Mock treasury contract address
-  const TREASURY_ADDRESS = "0x0000000000000000000000000000000000000000";
+  // Treasury contract address from environment
+  const TREASURY_ADDRESS = process.env.NEXT_PUBLIC_TREASURY_ADDRESS || "0x0000000000000000000000000000000000000000";
+  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
   // Read treasury data (mock for now)
   const { data: ethBreakdown } = useReadContract({

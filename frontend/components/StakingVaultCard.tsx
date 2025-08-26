@@ -22,11 +22,12 @@ export const StakingVaultCard = () => {
   const [lockAmount, setLockAmount] = useState("");
   const [lockDuration, setLockDuration] = useState(90); // days
 
-  // Contract addresses (would be from deployedContracts.ts)
-  const STAKING_VAULT_ADDRESS = "0x0000000000000000000000000000000000000000"; // Placeholder
+  // Contract addresses from environment
+  const STAKING_VAULT_ADDRESS = process.env.NEXT_PUBLIC_STAKING_VAULT_ADDRESS || "0x0000000000000000000000000000000000000000";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
   const WETH_ADDRESS = "0x4200000000000000000000000000000000000006"; // Base WETH
-  const AGN_ADDRESS = "0x0000000000000000000000000000000000000000"; // Placeholder
+  const AGN_ADDRESS = process.env.NEXT_PUBLIC_AGN_TOKEN_ADDRESS || "0x0000000000000000000000000000000000000000";
+  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
   // Asset configuration
   const assets = {

@@ -18,9 +18,10 @@ export const SimpleBondCard = () => {
   const [usdcAmount, setUsdcAmount] = useState("");
   const [selectedBondId, setSelectedBondId] = useState<number | null>(null);
 
-  // Contract addresses (would be from deployedContracts.ts)
-  const SIMPLE_BOND_ADDRESS = "0x0000000000000000000000000000000000000000"; // Placeholder
+  // Contract addresses from environment
+  const SIMPLE_BOND_ADDRESS = process.env.NEXT_PUBLIC_SIMPLE_BOND_ADDRESS || "0x0000000000000000000000000000000000000000";
   const USDC_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"; // Base USDC
+  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
 
   // Read contract data
   const { data: weeklyCapRemaining } = useReadContract({
