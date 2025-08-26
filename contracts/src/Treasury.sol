@@ -365,14 +365,7 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
         return 1e18; // Assume 1:1 for now
     }
 
-    /**
-     * @notice Set AGN token address (owner only)
-     * @param _agn AGN token address
-     */
-    function setAGNToken(address _agn) external onlyOwner {
-        require(_agn != address(0), "Invalid AGN address");
-        AGN = _agn;
-    }
+
 
     /**
      * @notice Calculate current TPT (Treasury per Token) value

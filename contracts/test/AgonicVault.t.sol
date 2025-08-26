@@ -55,7 +55,8 @@ contract AgonicVaultTest is Test {
             address(usdc),
             address(usd1),
             address(eurc),
-            address(weth)
+            address(weth),
+            address(0) // AGN placeholder
         );
         vault = new StableVault4626(
             address(usdc),

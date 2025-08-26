@@ -81,7 +81,7 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
         address _treasury,
         address _attestationEmitter,
         address _aaveAdapter,
-        address _lidoAdapter
+        address payable _lidoAdapter
     ) ERC20("Agonic Staking Vault", "aSTAKE") Ownable(msg.sender) {
         require(_usdc != address(0), "Invalid USDC");
         require(_weth != address(0), "Invalid WETH");
@@ -124,8 +124,8 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
         // Deploy to yield strategies
         if (assetAddress == address(USDC)) {
             // Approve and deposit to Aave
-            USDC.safeApprove(address(aaveAdapter), amount);
-            aaveAdapter.deposit(amount);
+            USDC.approve(address(aaveAdapter), amount);
+            aaveAdapter.deposit(assetAddress, amount);
         } else {
             // Stake ETH via Lido
             lidoAdapter.stake{value: amount}();
@@ -165,7 +165,7 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
 
         // Withdraw from yield strategies
         if (asset == address(USDC)) {
-            aaveAdapter.withdraw(amount);
+            aaveAdapter.withdraw(asset, amount);
         } else {
             lidoAdapter.unstake(amount);
         }
@@ -331,7 +331,7 @@ contract StakingVault is ERC20, Ownable, ReentrancyGuard {
      */
     function getAssetYieldRate(address asset) public view returns (uint256) {
         if (asset == address(USDC)) {
-            return aaveAdapter.getCurrentAPY();
+            return aaveAdapter.getCurrentAPY(asset);
         } else if (asset == address(WETH)) {
             return lidoAdapter.getCurrentAPY();
         }
