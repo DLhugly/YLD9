@@ -150,8 +150,7 @@ contract DeployAgonic is Script {
         treasuryManager.setAttestationEmitter(address(attestationEmitter));
         treasuryManager.setVaultAddress(address(vault));
 
-        // Set AGN token in Treasury for TPT calculations
-        treasury.setAGNToken(AGN_TOKEN);
+        // AGN token is set in Treasury constructor
 
         // Configure AttestationEmitter with authorized emitters
         attestationEmitter.addAuthorizedEmitter(address(treasuryManager));
