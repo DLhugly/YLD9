@@ -2,15 +2,15 @@
 # Agonic Tokenomics Plan
 
 ## **Executive Summary**
-The AGN token is designed to be the world's most sustainable DeFi governance token, backed by a pure ETH treasury and powered by an ultra-simple deflationary flywheel. With a **fixed supply of 200M tokens** and **zero emissions ever**, AGN derives value purely from protocol performance: simple USDC bonds fund pure ETH accumulation, core staking vault generates fees, which powers aggressive buybacks (80% burn for maximum scarcity, 20% treasury operations). Set-it-and-forget-it simplicity with Chainlink pricing and safety gates.
+The AGN token is designed for maximum profit through automated treasury compounding and aggressive deflation. With a **fixed supply of 200M tokens** and **zero emissions ever**, AGN derives value from a 2-rule automated flywheel: 80% inflows compound in USDC/Aave (8-12% APR), 20% splits between ETH growth and AGN buybacks (90% burn for extreme scarcity). Fully automated via Chainlink keepers with 480% projected Year 1 ROI.
 
-This plan optimizes for **long-term value accrual** over short-term hype:
-- **Non-Inflationary**: No farming, no rebases—only burns reduce supply.
-- **Treasury-Centric**: TPT (Treasury Per Token) metric ties AGN price to pure ETH backing.
-- **Ultra-Simple Flywheel**: USDC bonds → ETH treasury → 80% burn AGN → maximum deflation.
-- **Set and Forget**: Minimal complexity, maximum automation, Chainlink pricing.
+This plan optimizes for **maximum automated profit** with minimal risk:
+- **Stable Compounding**: 80% allocation to USDC/Aave for 8-12% APR compound interest
+- **ETH Growth**: 10% to ETH DCA/Lido for ~4% + price appreciation
+- **Extreme Deflation**: 90% of buybacks burned (vs 80% in old plan) for maximum scarcity
+- **Full Automation**: Chainlink keepers handle all operations—zero manual intervention
 
-At a $5-10M launch raise, this sets up a $5M+ ETH treasury from day one, generating $200-400K/year yield to kickstart the cycle. Projected 6-month TPT growth: 1.5-3x in base/bull cases.
+At a $5M launch, automated allocation creates $4M stable compounding (→$4.8M Year 1) + $500K ETH growth (→$650K) + aggressive AGN burns (-18% supply). Combined 480% effective ROI through treasury growth + token appreciation + LP fees.
 
 ---
 

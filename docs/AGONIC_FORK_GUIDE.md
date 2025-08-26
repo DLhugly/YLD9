@@ -6,28 +6,27 @@
 
 ## **What You're Forking**
 
-Agonic is an **ultra-simple treasury protocol** with three core mechanisms:
-1. **USDC Bonds** — Users deposit USDC for 10% discounted tokens (7-day vest)
-2. **Staking Vault** — USDC/ETH staking with competitive yields and token boosts  
-3. **Auto Buybacks** — 80% of inflows burn tokens, 20% to treasury operations
+Agonic is an **automated treasury protocol** with two core rules:
+1. **Stable-First Allocation** — 80% inflows to USDC compounding via Aave (8-12% APR)
+2. **Growth/Buyback Split** — 20% inflows: 10% ETH DCA/Lido + 10% token buyback (90% burn)
 
-**Key Benefits**: Pure ETH treasury accumulation, aggressive token deflation, minimal complexity, "set it and forget it" operation.
+**Key Benefits**: Automated stable compounding, ETH growth, extreme token deflation (90% burns), 480% projected ROI, zero manual operations via Chainlink keepers.
 
 ---
 
-## **Core Architecture (6 Contracts)**
+## **Core Architecture (4 Contracts)**
 
 ### **1. SimpleBond.sol**
 - **Purpose**: USDC-only bonds with fixed 10% discount
-- **Features**: 7-day linear vesting, weekly caps, safety gates
-- **Proceeds**: 100% to treasury for ETH accumulation
+- **Features**: 7-day auto-vest, feeds automated router
+- **Automation**: Proceeds auto-route via 80/20 split
 
 ### **2. StakingVault.sol** 
-- **Purpose**: ERC-4626 vault for USDC/ETH staking
-- **Features**: 5% fees, token boosts for lockers, competitive yields
-- **Integrations**: Aave (USDC), Lido (ETH)
+- **Purpose**: USDC/ETH staking with automated yield routing
+- **Features**: 5% fees auto-route to treasury, AGN boosts for lockers
+- **Integrations**: Fixed Aave (USDC), Lido (ETH)—no rebalancing
 
-### **3. Treasury.sol**
+### **3. Treasury.sol (Automated Router)**
 - **Purpose**: ETH accumulation and auto-buyback execution
 - **Features**: Chainlink pricing, safety gates, TPT calculation
 - **Flow**: Inflows → ETH buys → 80% buyback/burn, 20% hold

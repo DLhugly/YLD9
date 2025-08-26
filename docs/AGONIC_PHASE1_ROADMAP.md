@@ -1,27 +1,31 @@
-# Agonic v1 — One Killer Product
+# Agonic v1 — Ultra-Simple Automated Treasury Protocol
 
-**Tagline:** *Deposit stables → earn conservative yield → protocol accumulates ETH (MicroStrategy-style) → disciplined $AGN buybacks governed by safety gates.*
+**Tagline:** *Deposit USDC → automated stable yield + ETH growth → disciplined $AGN buybacks with zero manual intervention.*
 
-No separate Taska or AgentPayy in v1. Task automation/attestations live **inside** Agonic as simple transparency events.
+Fully automated flywheel: 2 rules, Chainlink keepers, maximum profit through stable compounding + ETH beta + AGN deflation.
 
 ---
 
 ## 1) What ships on Day One
 
-### 1.1 User experience
+### 1.1 User Experience
 
-1. **Multi-Stablecoin Vault (ERC-4626):** deposit/withdraw USDC, USD1, EURC; automated rebalancing across **proven Base protocols** (Aave, WLF, Uniswap V3, Aerodrome) with allocation caps.
-2. **ETH Reserve Transparency:** the Treasury DCA-buys ETH weekly via optimal routing; every trade and rebalancing action logged on-chain & in the dashboard.
-3. **"ETH Boost" (optional):** depositors can take a slice of *their yield* in ETH (principal stays in stablecoins).
-4. **FX Arbitrage Integration:** capture basis differentials across EURC/USDC/USD1 pairs to enhance vault yield.
-5. **Agonic Treasury Notes (ATN):** fixed-APR multi-stablecoin notes (non-transferable until maturity) to accelerate ETH accumulation.
+1. **USDC Bonds:** 10% AGN discount, 7-day auto-vest, 100% proceeds to treasury automation.
+2. **Staking Vault:** USDC/ETH deposits with Aave/Lido integration, 5% fee on yields, AGN boost rewards.
+3. **Treasury Transparency:** Real-time dashboard showing automated stable compounding, ETH DCA, and buyback execution.
+4. **Zero Manual Operations:** All harvests, DCA, buybacks via Chainlink keepers—true "set and forget."
 
-### 1.2 Protocol flywheel (your TIP-11 merged)
+### 1.2 Protocol Flywheel (2-Rule Automation)
 
-1. **Net Yield → Buybacks:** **40% of Net Yield (NY)** becomes the *Buyback Pool* (BP) **when safety gates are green**.
-2. **Buyback-and-Burn Flywheel:** **50% immediate AGN burn** (deflationary) + **50% POL Bond funding** (OHM-style bonding mechanism).
-3. **POL Bonds (Primary):** Users deposit stablecoins → receive discounted AGN + POL LP tokens. Treasury uses proceeds for liquidity provision, capturing **100% of trading fees** from owned positions.
-4. **Continuous Fee Capture:** Treasury targets **≥33% ownership** of AGN/USDC and AGN/ETH pools, generating sustainable trading fee revenue that funds more buybacks and bonds.
+**Rule 1: Stable-First Allocation (80% All Inflows)**
+- All inflows (bonds, fees, yields) → 80% to USDC buffer + Aave (8-12% APR)
+- Auto-maintain 12-month runway; excess auto-deposits to Aave for compound interest
+- Weekly harvest → recycles to stable accumulation (infinite compounding)
+
+**Rule 2: Growth/Buyback Split (20% All Inflows)**
+- 10% to ETH DCA + Lido stake (~4% APR + ETH beta)
+- 10% to AGN buyback (3-day TWAP): 90% burn, 10% pair with USDC for LP (if depth < $1M, treasury LP < 10%)
+- All harvests (Aave, Lido, LP fees) → route back through Rule 1
 
 ---
 

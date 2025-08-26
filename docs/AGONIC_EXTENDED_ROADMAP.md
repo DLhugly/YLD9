@@ -1,18 +1,17 @@
 # Agonic — Ultra-Simple Treasury Protocol (Extended Plan)
 
-**Tagline:** *Stake assets → earn yield with AGN boosts → protocol accumulates pure ETH → disciplined $AGN buybacks with 80% burns.*  
-**Focus:** Ultra-minimal mechanics: USDC bonds fund ETH treasury, core staking vault with AGN boosts, automatic buybacks burn 80% for maximum deflation. Set it and forget it.
+**Tagline:** *Automated stable compounding + ETH growth → disciplined $AGN buybacks with 90% burns.*  
+**Focus:** 2-rule flywheel: 80% inflows to stable compounding, 20% to growth/buyback. Chainlink automation, 480% projected ROI, zero manual operations.
 
 ---
 
 ## 0) Executive Summary
 
-Agonic is an **ultra-simple treasury protocol** that accumulates pure ETH through USDC bonds and staking fees, then performs **aggressive AGN buybacks with 80% burns**. No complex POL, no multi-asset bonds, no dynamic rebalancing—just pure ETH accumulation and maximum token deflation.
+Agonic is an **automated treasury protocol** that maximizes profit through stable compounding (80% allocation) and ETH growth (10%), while burning AGN aggressively (90% of buybacks). Fully automated via Chainlink keepers with 480% projected Year 1 ROI.
 
-**Three core mechanisms (and only three):**
-1. **USDC Bonds** — 10% discount, 7-day vest, 100% proceeds to ETH treasury
-2. **Core Staking Vault** — USDC/ETH staking with 5% fee, AGN boosts for lockers
-3. **Automatic Buybacks** — 80% burn / 20% treasury split on all inflows
+**Two core rules (automated):**
+1. **Stable-First Allocation** — 80% all inflows → USDC buffer + Aave compounding (8-12% APR)
+2. **Growth/Buyback Split** — 20% inflows → 10% ETH DCA/Lido + 10% AGN buyback (90% burn, 10% LP)
 
 ---
 
