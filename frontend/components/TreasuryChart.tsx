@@ -5,12 +5,12 @@ import { useReadContract } from "wagmi";
 import { formatEther } from "viem";
 
 /**
- * TreasuryChart component - ETH accumulation and FX arbitrage tracking
- * Based on UI_FRONTEND.md "ETH Treasury Fortress" theme with 3D-like vault visualization
+ * TreasuryChart component - ETH accumulation and automated yield tracking
+ * Based on ultra-simple treasury with 80/20 automated routing
  */
 export const TreasuryChart = () => {
   const [selectedTimeframe, setSelectedTimeframe] = useState<"1W" | "1M" | "3M" | "1Y">("1M");
-  const [showFXLogs, setShowFXLogs] = useState(false);
+  const [showYieldLogs, setShowYieldLogs] = useState(false);
 
   // Mock treasury contract address
   const TREASURY_ADDRESS = "0x0000000000000000000000000000000000000000";

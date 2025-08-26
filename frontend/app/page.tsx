@@ -16,20 +16,36 @@ const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
   const [selectedView, setSelectedView] = useState<"overview" | "bonds" | "staking" | "treasury">("overview");
 
-  // Mock data for dashboard tiles
+  // Development mock data (controlled by NEXT_PUBLIC_USE_MOCK_DATA)
+  const useMockData = process.env.NEXT_PUBLIC_USE_MOCK_DATA === "true";
+  
   const mockData = {
     totalTVL: 2450000,
-    currentAPY: 5.2,
+    currentAPY: 8.5, // Realistic Aave USDC APY
     ethReserves: 58.6,
     agnPrice: 0.85,
     buybacksActive: true,
-    runwayMonths: 8.2,
+    runwayMonths: 12, // Target runway
     coverageRatio: 1.45,
-    fxProfits: 1247
+    automatedYield: 2847 // Aave + Lido yields (not FX arbitrage)
   };
 
+  // TODO: Real contract data (when useMockData = false)
+  const realData = {
+    totalTVL: 0, // Treasury.getTotalTreasuryValue()
+    currentAPY: 0, // AaveAdapter.getCurrentAPY()
+    ethReserves: 0, // Treasury.liquidETH + stakedETH
+    agnPrice: 0, // Treasury.getAGNPrice()
+    buybacksActive: false, // Check Buyback.lastBuybackTime
+    runwayMonths: 0, // Calculate from Treasury.stablecoinBalances
+    coverageRatio: 0, // Treasury.getSafetyGateStatus()
+    automatedYield: 0 // Sum of adapter yields
+  };
+
+  const protocolData = useMockData ? mockData : realData;
+
   const ETHAccumulationMeter = () => {
-    const progress = (mockData.ethReserves / 100) * 100; // Target: 100 ETH
+    const progress = (protocolData.ethReserves / 100) * 100; // Target: 100 ETH
     
     return (
       <div className="relative w-48 h-48 mx-auto">
@@ -59,10 +75,10 @@ const Home: NextPage = () => {
         
         {/* Center content */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div className="text-3xl mb-1">⚡</div>
-          <div className="text-2xl font-bold">{mockData.ethReserves}</div>
-          <div className="text-sm text-base-content/70">ETH</div>
-          <div className="text-xs text-base-content/50 mt-1">Treasury</div>
+                  <div className="text-3xl mb-1">⚡</div>
+        <div className="text-2xl font-bold">{protocolData.ethReserves}</div>
+        <div className="text-sm text-base-content/70">ETH</div>
+        <div className="text-xs text-base-content/50 mt-1">Treasury</div>
         </div>
         
         {/* Animated particles */}
@@ -104,19 +120,19 @@ const Home: NextPage = () => {
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
               <div className="text-center">
-                <div className="text-2xl font-bold text-primary">${(mockData.totalTVL / 1000000).toFixed(1)}M</div>
+                <div className="text-2xl font-bold text-primary">${(protocolData.totalTVL / 1000000).toFixed(1)}M</div>
                 <div className="text-sm text-base-content/70">Total TVL</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-success">{mockData.currentAPY}%</div>
+                <div className="text-2xl font-bold text-success">{protocolData.currentAPY}%</div>
                 <div className="text-sm text-base-content/70">Current APY</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-warning">{mockData.ethReserves}</div>
+                <div className="text-2xl font-bold text-warning">{protocolData.ethReserves}</div>
                 <div className="text-sm text-base-content/70">ETH Reserves</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-info">${mockData.agnPrice}</div>
+                <div className="text-2xl font-bold text-info">${protocolData.agnPrice}</div>
                 <div className="text-sm text-base-content/70">AGN Price</div>
               </div>
             </div>
@@ -186,29 +202,33 @@ const Home: NextPage = () => {
                 )}
               </div>
 
-              {/* Vault Overview */}
+              {/* Automated Allocation */}
               <div className="bg-base-100 rounded-3xl p-6 shadow-md">
                 <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <span className="text-xl mr-2">📈</span>
-                  Vault Overview
+                  <span className="text-xl mr-2">🤖</span>
+                  80/20 Automation
                 </h3>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-base-content/70">USDC:</span>
-                    <span className="font-medium">45%</span>
+                    <span className="text-base-content/70">USDC Buffer:</span>
+                    <span className="font-medium">60%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-base-content/70">USD1:</span>
-                    <span className="font-medium">30%</span>
+                    <span className="text-base-content/70">Aave Yield:</span>
+                    <span className="font-medium">20%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-base-content/70">EURC:</span>
-                    <span className="font-medium">25%</span>
+                    <span className="text-base-content/70">ETH DCA:</span>
+                    <span className="font-medium">10%</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-base-content/70">AGN Buybacks:</span>
+                    <span className="font-medium">10%</span>
                   </div>
                   <div className="border-t pt-3">
                     <div className="flex justify-between">
                       <span className="text-base-content/70">Net APY:</span>
-                      <span className="font-medium text-success">{mockData.currentAPY}%</span>
+                      <span className="font-medium text-success">{protocolData.currentAPY}%</span>
                     </div>
                   </div>
                 </div>
@@ -225,44 +245,44 @@ const Home: NextPage = () => {
                     <span className="text-base-content/70">Runway:</span>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-success rounded-full"></div>
-                      <span className="font-medium">{mockData.runwayMonths}m</span>
+                      <span className="font-medium">{protocolData.runwayMonths}m</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-base-content/70">Coverage Ratio:</span>
                     <div className="flex items-center gap-2">
                       <div className="w-3 h-3 bg-success rounded-full"></div>
-                      <span className="font-medium">{mockData.coverageRatio}×</span>
+                      <span className="font-medium">{protocolData.coverageRatio}×</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-base-content/70">Buybacks:</span>
                     <div className="flex items-center gap-2">
-                      <div className={`w-3 h-3 rounded-full ${mockData.buybacksActive ? "bg-success" : "bg-error"}`}></div>
-                      <span className="font-medium">{mockData.buybacksActive ? "Active" : "Paused"}</span>
+                      <div className={`w-3 h-3 rounded-full ${protocolData.buybacksActive ? "bg-success" : "bg-error"}`}></div>
+                      <span className="font-medium">{protocolData.buybacksActive ? "Active" : "Paused"}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* FX Arbitrage Stats */}
+              {/* Automated Yield Performance */}
               <div className="bg-base-100 rounded-3xl p-6 shadow-md lg:col-span-2 xl:col-span-3">
                 <h3 className="text-lg font-semibold mb-4 flex items-center">
-                  <span className="text-xl mr-2">⚡</span>
-                  FX Arbitrage Performance
+                  <span className="text-xl mr-2">🤖</span>
+                  Automated Yield Performance
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-success">${mockData.fxProfits}</div>
-                    <div className="text-sm text-base-content/70">Total FX Profits</div>
+                    <div className="text-2xl font-bold text-success">${protocolData.automatedYield}</div>
+                    <div className="text-sm text-base-content/70">Total Yield Generated</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-info">0.1%</div>
-                    <div className="text-sm text-base-content/70">Auto Threshold</div>
+                    <div className="text-2xl font-bold text-info">7 days</div>
+                    <div className="text-sm text-base-content/70">Harvest Frequency</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-warning">24</div>
-                    <div className="text-sm text-base-content/70">Opportunities This Week</div>
+                    <div className="text-2xl font-bold text-warning">90%</div>
+                    <div className="text-sm text-base-content/70">AGN Burn Rate</div>
                   </div>
                 </div>
               </div>
