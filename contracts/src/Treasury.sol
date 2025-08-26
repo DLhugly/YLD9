@@ -5,7 +5,10 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./interfaces/ITreasury.sol";
+import "./interfaces/IBuyback.sol";
+import "./interfaces/IAttestationEmitter.sol";
 
 /**
  * @title Treasury
@@ -20,6 +23,16 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     address public immutable USD1;
     address public immutable EURC;
     address public immutable WETH;
+    address public immutable AGN;
+    
+    /// @notice External contracts
+    IBuyback public buyback;
+    IAttestationEmitter public attestationEmitter;
+    AggregatorV3Interface public ethUsdPriceFeed;
+    
+    /// @notice Manual ETH price (fallback)
+    uint256 public manualETHPrice;
+    uint256 public lastPriceUpdate;
 
     /// @notice Stablecoin balances
     mapping(address => uint256) public stablecoinBalances;
@@ -32,14 +45,15 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     /// @notice Monthly operational expenses in USDC
     uint256 public monthlyOpex = 50000e6; // $50k USDC
     
-    /// @notice Weekly DCA cap in USDC
-    uint256 public weeklyDCACap = 5000e6; // $5k USDC
+    /// @notice Auto-buyback split (80% burn, 20% treasury)
+    uint256 public constant BURN_BPS = 8000; // 80%
+    uint256 public constant TREASURY_BPS = 2000; // 20%
     
-    /// @notice FX arbitrage threshold (basis points)
-    uint256 public fxArbThreshold = 10; // 0.1%
+    /// @notice Burn throttle when safety gates are low
+    uint256 public constant LOW_SAFETY_BURN_BPS = 5000; // 50% when runway/CR low
     
     /// @notice ETH staking allocation limit (basis points)
-    uint256 public ethStakingLimit = 2000; // 20%
+    uint256 public ethStakingLimit = 10000; // 100% can be staked via Lido
     
     /// @notice Minimum coverage ratio (scaled by 1e18)
     uint256 public minCoverageRatio = 1.2e18; // 1.2x
@@ -81,17 +95,20 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
     event SafetyGateTriggered(string gate, bool status);
     event ParameterUpdated(string param, uint256 value);
     event TPTPublished(uint256 tptValue, uint256 totalTreasuryValue, uint256 circulatingSupply, uint256 timestamp);
+    event InflowProcessed(uint256 usdcAmount, uint256 ethAmount, uint256 buybackAmount, uint256 holdAmount);
 
-    constructor(
+        constructor(
         address _usdc,
-        address _usd1,
+        address _usd1, 
         address _eurc,
-        address _weth
+        address _weth,
+        address _agn
     ) Ownable(msg.sender) {
         USDC = _usdc;
         USD1 = _usd1;
         EURC = _eurc;
         WETH = _weth;
+        AGN = _agn;
     }
 
     /**
@@ -118,6 +135,42 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
         // IERC20(USDC).safeTransfer(dexRouter, amount);
         
         emit DCAPurchase(amount, ethPurchased, ethPrice);
+    }
+
+    /**
+     * @notice Process inflow from bonds/staking fees with auto-buyback (ultra-simple)
+     * @param usdcAmount Amount of USDC received
+     */
+    function processInflow(uint256 usdcAmount) external nonReentrant {
+        require(usdcAmount > 0, "Amount must be > 0");
+        
+        // Convert USDC to ETH
+        uint256 ethAmount = _swapUSDCToETH(usdcAmount);
+        
+        // Determine burn ratio based on safety gates
+        uint256 burnRatio = _getBurnRatio();
+        
+        // Split: burn ratio for buybacks, remainder held as ETH
+        uint256 buybackAmount = (ethAmount * burnRatio) / 10000;
+        uint256 holdAmount = ethAmount - buybackAmount;
+        
+        // Execute buyback if amount > 0
+        if (buybackAmount > 0 && address(buyback) != address(0)) {
+            // Transfer ETH to buyback contract and execute
+            payable(address(buyback)).transfer(buybackAmount);
+            buyback.executeBuyback(buybackAmount);
+        }
+        
+        // Hold remaining ETH in treasury (stake via Lido if configured)
+        if (holdAmount > 0) {
+            liquidETH += holdAmount;
+            _stakeETHIfNeeded();
+        }
+        
+        // Update TPT and emit events
+        _updateTPT();
+        
+        emit InflowProcessed(usdcAmount, ethAmount, buybackAmount, holdAmount);
     }
 
     /**
@@ -446,6 +499,95 @@ contract Treasury is ITreasury, Ownable, ReentrancyGuard {
         // In production: maintain whitelist of authorized contracts
         // For now, allow any contract (will be restricted in deployment)
         authorized = true;
+    }
+
+    /**
+     * @notice Convert USDC to ETH (simplified)
+     */
+    function _swapUSDCToETH(uint256 usdcAmount) internal returns (uint256 ethAmount) {
+        uint256 currentPrice = getCurrentETHPrice();
+        ethAmount = (usdcAmount * 1e18) / currentPrice;
+        stablecoinBalances[USDC] += usdcAmount;
+    }
+
+    /**
+     * @notice Get burn ratio based on safety gates
+     */
+    function _getBurnRatio() internal view returns (uint256 burnRatio) {
+        (bool runwayOK, bool crOK) = getSafetyGateStatus();
+        return (runwayOK && crOK) ? BURN_BPS : LOW_SAFETY_BURN_BPS;
+    }
+
+    /**
+     * @notice Stake ETH via Lido if needed
+     */
+    function _stakeETHIfNeeded() internal {
+        uint256 totalETH = liquidETH + stakedETH;
+        uint256 targetStaked = (totalETH * ethStakingLimit) / 10000;
+        
+        if (liquidETH > 0 && stakedETH < targetStaked) {
+            uint256 toStake = liquidETH;
+            if (stakedETH + toStake > targetStaked) {
+                toStake = targetStaked - stakedETH;
+            }
+            
+            if (toStake > 0) {
+                liquidETH -= toStake;
+                stakedETH += toStake;
+            }
+        }
+    }
+
+    /**
+     * @notice Update TPT metric
+     */
+    function _updateTPT() internal {
+        uint256 totalTreasuryValue = getTotalTreasuryValue();
+        uint256 circulatingSupply = getCirculatingSupply();
+        
+        if (circulatingSupply > 0) {
+            uint256 tptValue = (totalTreasuryValue * 1e18) / circulatingSupply;
+            
+            tptHistory.push(TPTSnapshot({
+                tptValue: tptValue,
+                totalTreasuryValue: totalTreasuryValue,
+                circulatingSupply: circulatingSupply,
+                timestamp: block.timestamp
+            }));
+            
+            emit TPTPublished(tptValue, totalTreasuryValue, circulatingSupply, block.timestamp);
+        }
+    }
+
+    /**
+     * @notice Get AGN price for bond calculations
+     */
+    function getAGNPrice() external view returns (uint256 price) {
+        return 1e18; // $1.00 per AGN (simplified)
+    }
+
+    /**
+     * @notice Get circulating AGN supply
+     */
+    function getCirculatingSupply() public view returns (uint256 supply) {
+        uint256 totalSupply = IERC20(AGN).totalSupply();
+        uint256 treasuryHoldings = IERC20(AGN).balanceOf(address(this));
+        return totalSupply - treasuryHoldings;
+    }
+
+    /**
+     * @notice Set external contracts
+     */
+    function setBuyback(address _buyback) external onlyOwner {
+        buyback = IBuyback(_buyback);
+    }
+
+    function setAttestationEmitter(address _attestationEmitter) external onlyOwner {
+        attestationEmitter = IAttestationEmitter(_attestationEmitter);
+    }
+
+    function setETHPriceFeed(address _priceFeed) external onlyOwner {
+        ethUsdPriceFeed = AggregatorV3Interface(_priceFeed);
     }
 
     /**

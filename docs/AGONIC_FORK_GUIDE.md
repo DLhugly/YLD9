@@ -1,165 +1,348 @@
-# Agonic Fork Setup Guide
+# Agonic Fork Guide - Ultra-Simple Treasury Protocol
 
-## What You're Doing
-
-1. **StableSwap** (this repo) → **Open source DEX aggregator** (clean, focused)
-2. **Agonic Fork** (new repo) → **Your main product** (vault + ETH treasury + app chain)
+**For teams wanting to fork Agonic's ultra-simple treasury accumulation and token deflation model**
 
 ---
 
-## Files to Bring to Agonic Fork
+## **What You're Forking**
 
-### **Planning Documents** ✅ 
-1. `AGONIC_PHASE1_ROADMAP.md` — Day one product (4-8 weeks)
-2. `AGONIC_PHASE2_APPCHAIN.md` — App chain evolution (6-12 months) 
-3. `AGONIC_EXTENDED_ROADMAP.md` — Full technical specification
-4. `ROADMAP.md` — Original Taska context (for reference)
+Agonic is an **ultra-simple treasury protocol** with three core mechanisms:
+1. **USDC Bonds** — Users deposit USDC for 10% discounted tokens (7-day vest)
+2. **Staking Vault** — USDC/ETH staking with competitive yields and token boosts  
+3. **Auto Buybacks** — 80% of inflows burn tokens, 20% to treasury operations
 
-### **StableSwap Foundation** ✅
-**Core code to adapt:**
-```
-apps/stable-swap/src/
-├── lib/
-│   ├── config.ts           # Env management → adapt for multi-stablecoin vault
-│   ├── math.ts             # BPS calculations → reuse for fees/CR/FX
-│   ├── viem.ts             # Base L2 client → reuse for DCA/rebalancing
-│   ├── tokens.ts           # Token metadata → expand for USDC/USD1/EURC/AGN
-│   └── venues/             # Multi-protocol integrations → strategy adapters
-│       ├── univ3.ts        # → Uniswap V3 LP strategy + concentrated liquidity
-│       ├── aerodrome.ts    # → Aerodrome stable LP + reward harvesting
-│       ├── aave.ts         # → NEW: Aave v3 lending integration
-│       └── wlf.ts          # → NEW: World Liberty Financial adapter
-├── components/
-│   └── SwapCard.tsx        # → VaultCard.tsx (multi-asset deposit/withdraw)
-└── app/api/
-    ├── quote/route.ts      # → vault/apy endpoint (multi-protocol)
-    ├── fx/implied/route.ts # → FX arbitrage opportunities (EURC/USDC/USD1)
-    └── rebalance/route.ts  # → NEW: Dynamic strategy allocation
-```
-
-**Smart contract foundation:**
-```
-contracts/src/
-└── RouterExecutor.sol      # Fee collection pattern → Treasury.sol
-```
+**Key Benefits**: Pure ETH treasury accumulation, aggressive token deflation, minimal complexity, "set it and forget it" operation.
 
 ---
 
-## Agonic Fork Repository Structure
+## **Core Architecture (6 Contracts)**
 
-```
-agonic/
-├── README.md                           # Agonic project overview
-├── AGONIC_PHASE1_ROADMAP.md            # Main implementation plan
-├── AGONIC_PHASE2_APPCHAIN.md           # App chain evolution  
-├── AGONIC_EXTENDED_ROADMAP.md          # Technical specification
-├── apps/
-│   ├── web/                            # Vault dashboard (adapted from stable-swap)
-│   │   ├── src/
-│   │   │   ├── components/
-│   │   │   │   ├── VaultCard.tsx       # Deposit/withdraw (from SwapCard)
-│   │   │   │   ├── TreasuryChart.tsx   # ETH accumulation display
-│   │   │   │   └── NotesPanel.tsx      # ATN subscription interface
-│   │   │   ├── lib/                    # Reuse StableSwap lib/
-│   │   │   └── app/api/
-│   │   │       ├── vault/
-│   │   │       ├── treasury/
-│   │   │       └── bonds/
-│   │   └── package.json                # Add vault-specific deps
-│   └── ops/                            # Operational scripts
-│       ├── harvest.ts                  # Weekly yield collection
-│       ├── dca.ts                      # Weekly ETH purchases  
-│       └── coupons.ts                  # ATN coupon payments
-├── packages/
-│   ├── protocol/                       # Smart contracts
-│   │   ├── StableVault4626.sol         # Multi-asset vault (USDC/USD1/EURC)
-│   │   ├── TreasuryManager.sol         # Multi-protocol integration controller
-│   │   ├── strategies/                 # Protocol-specific adapters
-│   │   │   ├── AaveAdapter.sol         # Aave v3 lending strategy
-│   │   │   ├── WLFAdapter.sol          # World Liberty Financial integration
-│   │   │   ├── UniswapAdapter.sol      # Uniswap V3 concentrated liquidity
-│   │   │   └── AerodromeAdapter.sol    # Aerodrome stable LP management
-│   │   ├── Treasury.sol                # ETH DCA + FX arbitrage logic
-│   │   ├── BondManager.sol             # ATN issuance with multi-asset support
-│   │   ├── ATNTranche.sol              # Note implementation (new)
-│   │   ├── Buyback.sol                 # AGN buybacks with LP governance
-│   │   ├── Gov.sol                     # LP staker + AGN holder governance
-│   │   └── AttestationEmitter.sol      # Strategy performance transparency
-│   └── sdk/                            # TypeScript SDK
-│       ├── vault.ts                    # Vault interaction utilities
-│       ├── treasury.ts                 # Treasury state queries
-│       └── bonds.ts                    # ATN subscription helpers
-├── governance/                         # Future community proposals
-│   └── future-proposals/               # Directory for community AIPs
-└── phase2-appchain/                    # Future app chain (Phase 2)
-    ├── agonic-chain/                   # Cosmos SDK modules
-    ├── bridge-contracts/               # Base L2 ↔ Agonic bridge
-    └── validator-tools/                # Validator setup guides
-```
+### **1. SimpleBond.sol**
+- **Purpose**: USDC-only bonds with fixed 10% discount
+- **Features**: 7-day linear vesting, weekly caps, safety gates
+- **Proceeds**: 100% to treasury for ETH accumulation
+
+### **2. StakingVault.sol** 
+- **Purpose**: ERC-4626 vault for USDC/ETH staking
+- **Features**: 5% fees, token boosts for lockers, competitive yields
+- **Integrations**: Aave (USDC), Lido (ETH)
+
+### **3. Treasury.sol**
+- **Purpose**: ETH accumulation and auto-buyback execution
+- **Features**: Chainlink pricing, safety gates, TPT calculation
+- **Flow**: Inflows → ETH buys → 80% buyback/burn, 20% hold
+
+### **4. Buyback.sol**
+- **Purpose**: TWAP token buybacks with burn/treasury split
+- **Features**: 3-day TWAP, slippage protection, volume limits
+- **Split**: 80% burn, 20% treasury operations
+
+### **5. Gov.sol**
+- **Purpose**: Token holder governance
+- **Features**: Time-weighted voting, parameter updates
+- **Scope**: Safety parameters, fees, contract upgrades
+
+### **6. AttestationEmitter.sol**
+- **Purpose**: Transparency events for all operations
+- **Features**: Buyback logs, treasury updates, safety gate status
+- **Use**: Frontend data, analytics, monitoring
 
 ---
 
-## Next Steps
+## **Minimal Adapters (2 Contracts)**
 
-### **1. Create Agonic Fork**
-```bash
-# Fork StableSwap to new Agonic repo
-git clone https://github.com/your-username/StableSwap.git agonic
-cd agonic
-git remote set-url origin https://github.com/your-username/agonic.git
-```
+### **AaveAdapter.sol**
+- Fixed USDC lending to Aave v3
+- No dynamic rebalancing or venue switching
+- Simple deposit/withdraw/harvest functions
 
-### **2. Copy Planning Files**
-```bash
-# These files are ready in your StableSwap directory
-cp AGONIC_*.md ../agonic/
-cp ROADMAP.md ../agonic/
-```
-
-### **3. Restructure for Agonic**
-```bash
-cd agonic
-mkdir -p packages/protocol packages/sdk governance phase2-appchain
-mv apps/stable-swap apps/web
-# Adapt apps/web for vault interface
-# Create new smart contracts in packages/protocol
-```
-
-### **4. First Implementation Target**
-**Foundation Goal:** Multi-protocol vault + treasury working on Base L2
-1. Deploy `StableVault4626.sol` (Multi-asset vault: USDC, USD1, EURC)
-2. Deploy `AaveAdapter.sol` (Base yield floor via Aave v3 integration)
-3. Deploy `TreasuryManager.sol` (Multi-protocol rebalancing controller)
-4. Deploy `Treasury.sol` (ETH DCA + FX arbitrage capabilities)  
-5. Build vault UI (Multi-asset deposit/withdraw with yield comparison)
+### **LidoAdapter.sol** 
+- Direct ETH staking to Lido
+- Automatic reward compounding
+- Liquid staking token management
 
 ---
 
-## Key Technical Adaptations
+## **Fork Customization Options**
 
-### **RouterExecutor.sol → Treasury.sol**
-Your fee collection pattern (lines 70-75) is perfect foundation:
+### **Asset Changes**
 ```solidity
-// Current: fee = (outBal * feeBps) / 10_000;
-// Agonic: treasuryShare = (yieldAmount * YIELD_FEE_BPS) / 10_000;
+// Change bond asset from USDC to your preferred stable
+IERC20 public immutable BOND_ASSET = IERC20(YOUR_STABLE);
+
+// Change treasury asset from ETH to your preferred reserve
+IERC20 public immutable TREASURY_ASSET = IERC20(YOUR_ASSET);
+
+// Update staking vault supported assets
+address[] public supportedAssets = [YOUR_STABLE, YOUR_ASSET];
 ```
 
-### **SwapCard.tsx → VaultCard.tsx**  
-Your React patterns work perfectly for vault:
-```typescript
-// Current: amountIn, tokenIn, tokenOut → getRoute()
-// Agonic: depositAmount, USDC only → deposit() / withdraw()
+### **Parameter Tuning**
+```solidity
+// Bond parameters
+uint256 public constant DISCOUNT_BPS = 1000;    // 10% discount
+uint256 public constant VESTING_DAYS = 7;       // 7-day vest
+uint256 public constant WEEKLY_CAP = 100000e18; // 100K tokens
+
+// Buyback split
+uint256 public constant BURN_BPS = 8000;        // 80% burn
+uint256 public constant TREASURY_BPS = 2000;    // 20% treasury
+
+// Safety gates
+uint256 public constant MIN_RUNWAY_MONTHS = 6;  // 6 month runway
+uint256 public constant MIN_COVERAGE_RATIO = 1.2e18; // 1.2x coverage
 ```
 
-### **Venue Logic → Multi-Protocol Strategy Logic**
-Your multi-venue comparison becomes automated yield optimization:
-```typescript
-// Current: Compare Uniswap vs Aerodrome for best price
-// Agonic: Compare Aave, WLF, Uniswap LP, Aerodrome for best risk-adjusted yield
-// Auto-rebalance based on performance + enforce protocol allocation caps
-// Execute FX arbitrage opportunities across EURC/USDC/USD1 pairs
+### **Yield Strategy Changes**
+```solidity
+// Replace Aave with your preferred lending protocol
+contract YourAdapter {
+    function deposit(uint256 amount) external;
+    function withdraw(uint256 amount) external;
+    function harvest() external returns (uint256);
+}
+
+// Replace Lido with your preferred staking provider
+contract YourStakingAdapter {
+    function stake(uint256 amount) external;
+    function unstake(uint256 amount) external;
+    function getRewards() external returns (uint256);
+}
 ```
 
 ---
 
-**You're 60-70% of the way there with existing StableSwap code!**
+## **Deployment Guide**
+
+### **Step 1: Contract Deployment**
+```bash
+# Deploy core contracts in order
+forge script script/DeployCore.s.sol --broadcast --verify
+
+# Deploy adapters
+forge script script/DeployAdapters.s.sol --broadcast --verify
+
+# Initialize with parameters
+forge script script/Initialize.s.sol --broadcast
+```
+
+### **Step 2: Parameter Configuration**
+```solidity
+// Set initial parameters
+treasury.setMinRunway(6 * 30 days);
+treasury.setMinCoverageRatio(1.2e18);
+treasury.setChainlinkFeed(ETH_USD_FEED);
+
+// Configure bond limits
+simpleBond.setWeeklyCap(100000e18);
+simpleBond.setDiscount(1000); // 10%
+
+// Set vault fees
+stakingVault.setFee(500); // 5%
+stakingVault.setBoostRate(500); // +5%
+```
+
+### **Step 3: Initial Liquidity**
+```solidity
+// Seed initial token liquidity pool
+// Recommended: $50K minimum depth
+router.addLiquidity(
+    TOKEN_ADDRESS,
+    USDC_ADDRESS,
+    tokenAmount,
+    usdcAmount,
+    deadline
+);
+```
+
+### **Step 4: Frontend Deployment**
+```bash
+# Update contract addresses
+cp deployments/mainnet.json frontend/contracts/
+
+# Deploy frontend
+npm run build
+vercel deploy --prod
+```
+
+---
+
+## **Customization Examples**
+
+### **Example 1: BTC Treasury Protocol**
+```solidity
+// Change treasury asset to WBTC
+IERC20 public immutable TREASURY_ASSET = IERC20(WBTC);
+
+// Update pricing oracle
+AggregatorV3Interface public btcUsdFeed = AggregatorV3Interface(BTC_USD_FEED);
+
+// Modify treasury accumulation logic
+function processInflow(uint256 amount) external {
+    uint256 btcAmount = _swapUSDCToBTC(amount);
+    // Rest remains the same
+}
+```
+
+### **Example 2: Multi-Chain Deployment**
+```solidity
+// Polygon deployment with MATIC treasury
+IERC20 public immutable TREASURY_ASSET = IERC20(WMATIC);
+
+// Use Polygon-specific integrations
+IAavePool public aavePool = IAavePool(POLYGON_AAVE_POOL);
+IQuickSwap public dex = IQuickSwap(QUICKSWAP_ROUTER);
+```
+
+### **Example 3: DAO Treasury Manager**
+```solidity
+// Larger caps for institutional use
+uint256 public constant WEEKLY_CAP = 1000000e18; // 1M tokens
+uint256 public constant MIN_DEPOSIT = 10000e6;   // $10K minimum
+
+// Different fee structure
+uint256 public constant MANAGEMENT_FEE = 200;    // 2% annual
+uint256 public constant PERFORMANCE_FEE = 1000;  // 10% on profits
+```
+
+---
+
+## **Testing Your Fork**
+
+### **Unit Tests**
+```bash
+# Test core functionality
+forge test --match-contract SimpleBondTest
+forge test --match-contract StakingVaultTest
+forge test --match-contract TreasuryTest
+
+# Test edge cases
+forge test --match-test testSafetyGates
+forge test --match-test testBuybackExecution
+```
+
+### **Integration Tests**
+```bash
+# Test full user flows
+forge test --match-test testBondToBuybackFlow
+forge test --match-test testStakingToFeesFlow
+forge test --match-test testEmergencyScenarios
+```
+
+### **Fork Testing**
+```bash
+# Test against live protocols
+forge test --fork-url $MAINNET_RPC --match-test testAaveIntegration
+forge test --fork-url $MAINNET_RPC --match-test testLidoIntegration
+```
+
+---
+
+## **Common Customizations**
+
+### **Different Discount Mechanisms**
+```solidity
+// Dynamic discount based on treasury health
+function getCurrentDiscount() public view returns (uint256) {
+    uint256 cr = getCoverageRatio();
+    if (cr > 2e18) return 500;      // 5% if healthy
+    if (cr > 1.5e18) return 1000;   // 10% if normal  
+    return 1500;                    // 15% if stressed
+}
+```
+
+### **Alternative Vesting Schedules**
+```solidity
+// Cliff vesting instead of linear
+function getClaimableAmount(uint256 bondId) public view returns (uint256) {
+    Bond storage bond = userBonds[msg.sender][bondId];
+    
+    if (block.timestamp < bond.vestingStart + CLIFF_PERIOD) {
+        return 0;
+    }
+    return bond.amount - bond.claimed;
+}
+```
+
+### **Multi-Asset Bonds**
+```solidity
+// Support multiple bond assets
+mapping(address => bool) public supportedBondAssets;
+mapping(address => uint256) public assetDiscounts;
+
+function deposit(address asset, uint256 amount) external {
+    require(supportedBondAssets[asset], "Asset not supported");
+    uint256 discount = assetDiscounts[asset];
+    // Rest of bond logic...
+}
+```
+
+---
+
+## **Security Considerations**
+
+### **Key Risks**
+1. **Oracle Manipulation**: Use Chainlink with staleness checks
+2. **Flash Loan Attacks**: Implement proper access controls
+3. **Slippage Attacks**: Use TWAP and volume limits
+4. **Governance Attacks**: Use timelocks and multisig
+
+### **Recommended Protections**
+```solidity
+// Oracle staleness check
+require(block.timestamp - updatedAt <= 3600, "Price too stale");
+
+// Volume limits
+require(amount <= getDailyVolumeLimit(), "Exceeds volume limit");
+
+// Slippage protection  
+require(amountOut >= minAmountOut, "Slippage too high");
+
+// Access controls
+modifier onlyAuthorized() {
+    require(authorized[msg.sender], "Not authorized");
+    _;
+}
+```
+
+---
+
+## **License & Attribution**
+
+### **MIT License**
+This codebase is MIT licensed - fork freely with attribution.
+
+### **Required Attribution**
+```solidity
+// SPDX-License-Identifier: MIT
+// Based on Agonic Protocol by [Your Team]
+// Original: https://github.com/yourorg/agonic
+```
+
+### **Optional Recognition**
+- Link to original Agonic protocol in documentation
+- Credit in UI footer or about page
+- Social media mention when launching
+
+---
+
+## **Support & Community**
+
+### **Documentation**
+- Full docs at `docs.agonic.xyz`
+- Contract specifications in `/docs`
+- Frontend examples in `/examples`
+
+### **Community**
+- Discord: [Your Discord]
+- Twitter: [Your Twitter]  
+- GitHub Discussions for technical questions
+
+### **Professional Services**
+- Custom deployment assistance
+- Security review services
+- Integration consulting
+
+---
+
+**Fork Agonic: Ultra-simple treasury protocol for any token and any treasury asset.**

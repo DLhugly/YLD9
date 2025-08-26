@@ -3,7 +3,8 @@
 import { useState } from "react";
 import type { NextPage } from "next";
 import { useAccount } from "wagmi";
-import { VaultCard } from "~~/components/VaultCard";
+import { SimpleBondCard } from "~~/components/SimpleBondCard";
+import { StakingVaultCard } from "~~/components/StakingVaultCard";
 import { TreasuryChart } from "~~/components/TreasuryChart";
 import { Address } from "~~/components/scaffold-eth";
 
@@ -13,7 +14,7 @@ import { Address } from "~~/components/scaffold-eth";
  */
 const Home: NextPage = () => {
   const { address: connectedAddress } = useAccount();
-  const [selectedView, setSelectedView] = useState<"overview" | "vault" | "treasury" | "notes">("overview");
+  const [selectedView, setSelectedView] = useState<"overview" | "bonds" | "staking" | "treasury">("overview");
 
   // Mock data for dashboard tiles
   const mockData = {
@@ -129,9 +130,9 @@ const Home: NextPage = () => {
           <div className="bg-base-100 rounded-2xl p-1 shadow-lg">
             {[
               { key: "overview", label: "Overview", icon: "📊" },
-              { key: "vault", label: "Vault", icon: "🏦" },
-              { key: "treasury", label: "Treasury", icon: "🏛️" },
-              { key: "notes", label: "ATN Notes", icon: "📄" }
+              { key: "bonds", label: "Bonds", icon: "🎫" },
+              { key: "staking", label: "Staking", icon: "🏪" },
+              { key: "treasury", label: "Treasury", icon: "💎" }
             ].map((tab) => (
               <button
                 key={tab.key}
@@ -268,9 +269,15 @@ const Home: NextPage = () => {
             </div>
           )}
 
-          {selectedView === "vault" && (
-            <div className="flex justify-center">
-              <VaultCard />
+          {selectedView === "bonds" && (
+            <div className="max-w-lg mx-auto">
+              <SimpleBondCard />
+            </div>
+          )}
+
+          {selectedView === "staking" && (
+            <div className="max-w-lg mx-auto">
+              <StakingVaultCard />
             </div>
           )}
 
@@ -278,32 +285,7 @@ const Home: NextPage = () => {
             <TreasuryChart />
           )}
 
-          {selectedView === "notes" && (
-            <div className="bg-base-100 rounded-3xl p-8 shadow-md text-center">
-              <div className="text-6xl mb-4">📄</div>
-              <h2 className="text-2xl font-bold mb-2">ATN Notes</h2>
-              <p className="text-base-content/70 mb-6">
-                Fixed-APR treasury notes coming soon
-              </p>
-              <div className="bg-base-200 rounded-2xl p-6">
-                <h3 className="font-semibold mb-4">ATN-01 Tranche</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <div className="text-base-content/70">APR:</div>
-                    <div className="font-medium text-lg">8%</div>
-                  </div>
-                  <div>
-                    <div className="text-base-content/70">Term:</div>
-                    <div className="font-medium text-lg">6 months</div>
-                  </div>
-                  <div>
-                    <div className="text-base-content/70">Cap:</div>
-                    <div className="font-medium text-lg">$250k</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
     </div>

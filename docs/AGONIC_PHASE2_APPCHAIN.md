@@ -1,62 +1,61 @@
-# Agonic Phase 2: L3 Evolution
+# Agonic Phase 2: Ultra-Simple L3 Evolution
 
-**L3 Chain as Phase 2: The Perfect Evolution**
+**L3 Chain as Phase 2: Scale the Ultra-Simple Treasury Protocol**
 
-**Phase 1** (Base L2, 4-8 weeks): Ship Agonic v1 exactly as planned  
-**Phase 2** (L3 Chain, 6-12 months): Migrate to OP Stack L3 or Arbitrum Orbit with **AGN as gas token**
+**Phase 1** (Base L2, 2 days): Ship ultra-simple Agonic v1 (USDC bonds → ETH treasury → 80% burns)  
+**Phase 2** (L3 Chain, 6-12 months): Migrate to OP Stack L3 with **AGN as gas token** for institutional scale
 
-This creates a **much more compelling long-term vision** while keeping the near-term execution focused.
+This scales the proven ultra-simple model to L3 for maximum efficiency and institutional adoption.
 
-## How L3 Makes Agonic Operations Meaningful
+## How L3 Scales Ultra-Simple Operations
 
-### **Vault Operations = Native Chain Primitives**
+### **Treasury Operations = Native Chain Primitives**
 
-Instead of expensive L2 operations, **multi-protocol treasury management becomes native L3 functionality:**
+Ultra-simple treasury operations become native L3 functionality with institutional scale:
 
 1. **L3 Sequencer Benefits:**
-   1. Ultra-cheap vault transactions (<$0.001 gas) across all protocols
-   2. AGN required for all L3 transactions (rebalancing, FX arbitrage, governance)
-   3. Custom precompiles for multi-asset vault operations and FX routing
-   4. MEV from vault rebalancing and FX arbitrage captured by protocol
+   1. Ultra-cheap bond transactions (<$0.001 gas) for institutional volumes
+   2. AGN required for all L3 transactions (bonds, staking, governance)
+   3. Custom precompiles for USDC→ETH conversion and buyback execution
+   4. MEV from large buyback operations captured by protocol
 
 2. **Native Treasury Operations:**
-   1. Multi-stablecoin deposit/withdraw as L3 system transactions
-   2. Protocol rebalancing (Aave↔WLF↔Uniswap↔Aerodrome) costs essentially nothing
-   3. FX arbitrage execution (EURC/USDC/USD1) with atomic settlement
-   4. ETH DCA with atomic L2 bridge calls optimized for best execution
-   5. LP governance voting and AGN buybacks with zero gas friction
+   1. USDC bond deposits as L3 system transactions
+   2. ETH accumulation and Lido staking costs essentially nothing
+   3. Automated buyback execution (80% burn) with atomic settlement
+   4. Cross-chain ETH bridge calls optimized for best execution
+   5. AGN governance voting with zero gas friction
 
 3. **Economic Alignment:**
    1. More L3 usage = more AGN gas demand
    2. L3 sequencer revenue flows to treasury
-   3. Vault growth = L3 activity = AGN value
+   3. Treasury growth = L3 activity = AGN value
 
 ## Updated Roadmap Structure
 
-### **Phase 1: Base L2 Foundation** (4-8 weeks)
+### **Phase 1: Base L2 Foundation** (2 days)
 ```
-Current AGONIC_PHASE1_ROADMAP → UNCHANGED
-1. Launch vault, treasury, bonds on Base L2
-2. Prove product-market fit
-3. Build user base and treasury reserves
-4. AttestationEmitter = preparation for chain migration
+Ultra-Simple Launch:
+1. Launch SimpleBond, StakingVault, Treasury on Base L2
+2. Prove ultra-simple model works (bonds → ETH → burns)
+3. Build user base and ETH treasury reserves
+4. AttestationEmitter = preparation for L3 migration
 ```
 
-### **Phase 2: App Chain Migration** (Months 6-12)
+### **Phase 2: Ultra-Simple L3 Migration** (Months 6-12)
 ```
-Enhanced Architecture:
-├── agonic-l3/                 # OP Stack L3 or Arbitrum Orbit chain
-│   ├── multi-asset-vault/     # Native USDC/USD1/EURC vault operations
-│   ├── protocol-integrations/ # Aave, WLF, Uniswap, Aerodrome adapters
-│   ├── fx-engine/            # Native FX arbitrage and routing system
-│   ├── treasury/             # Multi-stablecoin treasury with ETH DCA  
-│   ├── bonds/                # ATN multi-asset notes managed natively
-│   └── governance/           # LP staker + AGN holder governance with L3 economics
-├── bridge/                    # **Multi-asset Base L2 ↔ Agonic L3 with FX optimization**
-│   ├── MultiAssetBridge.sol   # USDC/USD1/EURC bridge with atomic FX routing
-│   ├── BridgeFeeCollector.sol # Bridge fees → treasury revenue stream
-│   └── FXOptimizer.sol        # On-bridge arbitrage for best conversion rates
-└── migration-tools/           # User asset migration utilities
+Simplified L3 Architecture:
+├── agonic-l3/                 # OP Stack L3 chain
+│   ├── simple-bonds/          # USDC-only bonds with institutional scale
+│   ├── staking-vault/         # USDC/ETH staking with Aave/Lido integration
+│   ├── treasury/              # Pure ETH treasury with automated buybacks
+│   ├── buyback-engine/        # 80% burn / 20% treasury with L3 efficiency
+│   └── governance/            # AGN holder governance with L3 economics
+├── bridge/                    # **Simple Base L2 ↔ Agonic L3 bridge**
+│   ├── USDCBridge.sol         # USDC bridge for bond deposits
+│   ├── ETHBridge.sol          # ETH bridge for treasury operations
+│   └── BridgeFees.sol         # Bridge fees → treasury revenue
+└── migration-tools/           # User position migration utilities
 ```
 
 ## Technical Architecture

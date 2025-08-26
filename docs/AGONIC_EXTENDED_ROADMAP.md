@@ -1,134 +1,159 @@
-# Agonic — Full Roadmap (v1)
+# Agonic — Ultra-Simple Treasury Protocol (Extended Plan)
 
-**Tagline:** *Deposit stables → earn conservative yield → protocol accumulates ETH (MicroStrategy-style) → disciplined $AGN buybacks governed by safety gates.*  
-**Scope:** One killer product. Taska ideas are folded in as **transparency + fee-positive mini-apps**, without altering the core. AgentPayy is deferred.
+**Tagline:** *Stake assets → earn yield with AGN boosts → protocol accumulates pure ETH → disciplined $AGN buybacks with 80% burns.*  
+**Focus:** Ultra-minimal mechanics: USDC bonds fund ETH treasury, core staking vault with AGN boosts, automatic buybacks burn 80% for maximum deflation. Set it and forget it.
 
 ---
 
 ## 0) Executive Summary
 
-Agonic is a **stable-yield vault with a treasury that DCA-buys ETH** and, once safety gates are green, performs **programmatic $AGN buybacks**.  
-We add a **bond program (ATN)** to scale the ETH balance sheet prudently. Taska's "Proof-of-Task" becomes a **lightweight Agent Activity Oracle**—for **transparency**, not settlement.
+Agonic is an **ultra-simple treasury protocol** that accumulates pure ETH through USDC bonds and staking fees, then performs **aggressive AGN buybacks with 80% burns**. No complex POL, no multi-asset bonds, no dynamic rebalancing—just pure ETH accumulation and maximum token deflation.
 
-**Three levers (and only three at launch):**
-1. **Fee on Yield (vault)** — never on principal.  
-2. **Weekly DCA cap (treasury)** — ETH accumulation, runway-aware.  
-3. **Buyback policy (40% of Net Yield)** — gated by **Runway** and **Coverage Ratio**.
-
----
-
-## 1) Day-One Product (What ships)
-
-### 1.1 User Experience
-1. **Multi-Stablecoin Vault (ERC-4626)**: deposit/withdraw USDC, USD1, EURC; **dynamic allocation** across proven Base protocols (Aave, WLF, Uniswap V3, Aerodrome); **allocation caps enforced** per protocol.
-2. **ETH Reserve + FX Transparency**: Treasury performs **weekly DCA** with optimal routing plus **FX arbitrage** across stablecoin pairs; every trade and rebalancing action logged on-chain.
-3. **Optional ETH Boost**: users may elect to receive **a % of their yield in ETH** (principal remains in chosen stablecoin).
-4. **Enhanced ATN Program**: on-chain fixed-APR **multi-stablecoin notes** (non-transferable until maturity) to accelerate ETH accumulation and FX strategy funding.
-
-### 1.2 Token Flywheel (TIP-11 merged)
-1. **40% of Net Yield (NY)** → **Buyback Pool** (BP), when safety gates are green.
-2. **Buyback Split:** **50% burn / 50% to treasury** (treasury-held AGN = long-term alignment).
-3. **POL Bonds (Primary)**: OHM-style bonding mechanism where users deposit stablecoins → receive discounted AGN + POL LP exposure. **Zero token emissions ever**.
-4. **Continuous Buyback-and-Burn**: 50% of buyback pool immediately burns AGN (deflationary) + 50% funds POL bonds (treasury growth).
+**Three core mechanisms (and only three):**
+1. **USDC Bonds** — 10% discount, 7-day vest, 100% proceeds to ETH treasury
+2. **Core Staking Vault** — USDC/ETH staking with 5% fee, AGN boosts for lockers
+3. **Automatic Buybacks** — 80% burn / 20% treasury split on all inflows
 
 ---
 
-## 2) MicroStrategy-Style ETH Reserve (Why & How)
+## 1) Ultra-Simple User Experience
 
-### 2.1 Two ETH inflows
-1) **Fee on yield** from the vault (**12%** of realized yield, never on principal) → Treasury.  
-2) **ATN bond proceeds** → **100%** routed to ETH DCA automatically.
+### 1.1 Simple USDC Bonds
+- **Deposit**: USDC → receive 10% discounted AGN (7-day vest)
+- **Proceeds**: 100% to pure ETH treasury buys/holds (Lido staking)
+- **No Complexity**: Single bond type, fixed discount, automatic execution
 
-### 2.2 Safety gates (discipline)
-1. **Runway buffer:** maintain **≥ 6 months OPEX (USDC)** before any DCA or buybacks.  
-2. **Coverage Ratio (CR):**  
-  $$ CR = \frac{Treasury\ USDC + Treasury\ ETH \times ETHUSD}{ATN\ Principal\ Outstanding} $$  
-  Require **CR ≥ 1.2×**; if breached, **auto-pause** new ATN issuance & buybacks (DCA may proceed under reduced caps).
+### 1.2 Core Staking Vault
+- **Assets**: Stake USDC/ETH for competitive yields (5% fee to treasury)
+- **USDC Yields**: Fixed Aave lending (8-12% APR) — single lender, no rebalancing
+- **ETH Yields**: Direct Lido staking (~4% APR) for liquid staking rewards
+- **AGN Boosts**: Lockers get +5% yield boost (funded from 20% of fees)
 
-### 2.3 $AGN value drivers (mechanical, not promises)
-1. Programmatic buybacks (40% of NY; gates on) via **TWAP/split orders** → **50% burn / 50% treasury**.  
-2. **Governance utility** with time-weighted voting; **priority POL Bond access**; **vault fee rebates** and **yield multipliers** for locked AGN holders.  
-3. **TPT (Treasury-per-Token)** published weekly (informational transparency metric).  
-4. **Fixed supply** (e.g., 200M AGN). No emissions v1; incentives (if any) come from treasury-held AGN via AIP.
+### 1.3 Pure ETH Treasury
+- **Focus**: 100% pure ETH hold/stake — no POL/IL exposure
+- **Growth**: All inflows (bonds + staking fees) accumulate as ETH
+- **Backing**: Treasury Per Token (TPT) metric grows mechanically
+
+### 1.4 Automatic Buybacks
+- **Trigger**: Automatic on all inflows (bonds + staking fees)
+- **Split**: 80% burn AGN immediately, 20% to treasury for operations
+- **Execution**: 3-day TWAP for safe, simple execution
 
 ---
 
-## 3) Parameters (initial, changeable via AIP)
+## 2) Pure ETH Treasury Strategy
 
-| Parameter | Initial |
+### 2.1 ETH Inflows
+1. **Bond Proceeds**: 100% of USDC bonds → ETH treasury buys
+2. **Staking Fees**: 80% of vault fees → ETH buybacks → burns
+3. **ETH Staking**: Treasury ETH staked via Lido for compound growth
+
+### 2.2 Safety Gates (Built-in Discipline)
+1. **Runway Buffer**: Maintain ≥6 months OPEX before buybacks
+2. **Coverage Ratio**: CR ≥1.2× for all operations
+3. **Burn Throttle**: If runway/CR low, burn 50% (else 80%)
+4. **Pool Depth**: Min $50K liquidity before buybacks execute
+
+### 2.3 AGN Value Drivers (Mechanical)
+1. **Aggressive Deflation**: 80% burns reduce supply continuously
+2. **ETH Backing**: Pure ETH treasury grows TPT metric
+3. **Utility**: Governance votes + staking boosts drive demand
+4. **Fixed Supply**: No emissions, only burns
+
+---
+
+## 3) Simplified Parameters
+
+| Parameter | Value |
 |---|---|
-| Vault assets | USDC, USD1, EURC (Base L2) |
-| Base strategy | Aave v3 lending (guaranteed yield floor) |
-| Protocol allocation | Aave ≤ **60% TVL**, WLF ≤ **40% TVL**, LP strategies ≤ **30% TVL** each |
-| Idle buffer | **≥ 20% TVL** (across all stablecoins) |
-| Fee on Yield | **12%** (never on principal) |
-| Runway buffer | **6 months** OPEX (multi-stablecoin) |
-| Weekly DCA cap | **$5,000** equivalent (scales with TVL) |
-| FX arbitrage | Enabled for EURC/USDC/USD1 pairs |
-| FX arbitrage threshold | **0.1%** minimum deviation for automatic execution |
-| ETH staking allocation | **≤20%** of treasury ETH via Lido/Rocket Pool |
-| Buyback mechanism | **40% of NY** → **50% burn + 50% POL bonds** (includes FX profits + staking rewards) |
-| Buyback split | **50% burn / 50% treasury** |
-| POL target ownership | **≥33%** of AGN/USDC and AGN/ETH pools for maximum fee capture |
-| CR minimum | **1.2×** (multi-asset treasury) |
-| ATN-01 tranche | **$250k** cap; **8% APR**; **6m** term; multi-stablecoin; non-transferable |
+| Bond Assets | USDC only |
+| Bond Discount | 10% fixed |
+| Bond Vesting | 7 days linear |
+| Staking Assets | USDC, ETH |
+| USDC Strategy | Fixed Aave lending (8-12% APR) |
+| ETH Strategy | Lido staking (~4% APR) |
+| Vault Fee | 5% of yields |
+| AGN Boost | +5% for lockers |
+| Buyback Split | 80% burn / 20% treasury |
+| TWAP Period | 3 days |
+| Safety Gates | Runway ≥6m, CR ≥1.2×, Pool ≥$50K |
 
 ---
 
-## 4) Architecture Overview (How)
+## 4) Ultra-Simple Architecture
 
-**Smart Contract Suite:**
-1. **StableVault4626.sol** — Multi-asset ERC-4626 vault (USDC/USD1/EURC) with yield fee collection
-2. **TreasuryManager.sol** — Multi-protocol rebalancing controller with dynamic allocation
-3. **Protocol Adapters:**
-   - **AaveAdapter.sol** — Aave v3 lending integration for yield floor
-   - **WLFAdapter.sol** — World Liberty Financial vault integration
-   - **UniswapAdapter.sol** — Uniswap V3 concentrated liquidity management  
-   - **AerodromeAdapter.sol** — Aerodrome stable LP strategies
-4. **Treasury.sol** — Multi-stablecoin/ETH holdings, DCA execution, **automated FX arbitrage thresholds**, **ETH staking integration**, runway/CR tracking
-5. **BondManager.sol + ATNTranche.sol** — Fixed-APR multi-stablecoin note issuance and management
-6. **Buyback.sol** — TWAP AGN purchases with LP governance integration, burn/treasury split
-7. **Gov.sol** — Dual governance (AGN holders + LP stakers) over protocol integrations and parameters
-8. **AttestationEmitter.sol** — Strategy performance and rebalancing transparency events
+**Core Contracts (Minimal):**
+1. **SimpleBond.sol** — USDC-only bonds, fixed 10% discount, 7-day vest
+2. **StakingVault.sol** — ERC-4626 for USDC/ETH with AGN boosts
+3. **Treasury.sol** — ETH accumulation, auto-buyback pipe, Chainlink pricing
+4. **Buyback.sol** — 80% burn / 20% treasury split, TWAP execution
+5. **Gov.sol** — AGN holder governance
+6. **AttestationEmitter.sol** — Transparency events
 
-**Integration Points:**
-1. **Vault ↔ StrategyAdapter** — Yield generation and harvest
-2. **Vault ↔ Treasury** — Fee routing and ETH conversion option
-3. **Treasury ↔ BondManager** — ATN proceeds to DCA
-4. **Treasury ↔ Buyback** — Net yield allocation when gates pass
-5. **All ↔ AttestationEmitter** — Event logging for transparency
+**Simple Adapters:**
+- **AaveAdapter.sol** — Fixed USDC lending (no rebalancing)
+- **LidoAdapter.sol** — ETH staking integration
 
-**Security & Risk Management:**
-1. **Venue caps** — Maximum 60% TVL exposure to any single protocol
-2. **Idle buffer** — Minimum 20% TVL kept liquid for withdrawals  
-3. **Safety gates** — Runway and CR requirements before risk activities
-4. **Emergency controls** — Independent pause mechanisms for each module
-5. **Governance timelock** — Parameter changes subject to delay
+**No Complex Systems:**
+- ❌ TreasuryManager.sol (no dynamic rebalancing)
+- ❌ BondManager.sol + ATNTranche.sol (replaced by SimpleBond)
+- ❌ POLManager.sol (no POL strategy)
+- ❌ LPStaking.sol (no LP rewards)
 
 ---
 
-## 5) Roadmap to Production
+## 5) Implementation Timeline (2 Days)
 
-**Week 1-2: Core Infrastructure**
-1. Deploy vault, strategy, treasury contracts on Base testnet
-2. Build basic web interface for deposits/withdrawals  
-3. Implement DCA and transparency logging
+**Day 1: Contracts & Tests**
+- Complete SimpleBond.sol, StakingVault.sol
+- Update Treasury.sol with auto-buyback pipe
+- Update Buyback.sol with 80/20 split
+- Write comprehensive unit and integration tests
 
-**Week 3-4: Bond Program**  
-1. Deploy bond manager and ATN tranche contracts
-2. Add notes subscription interface
-3. Implement coverage ratio monitoring and gates
-
-**Week 5-6: Buyback System**
-1. Deploy buyback contract with TWAP mechanisms
-2. Add AGN token and initial liquidity
-3. Test full flywheel with safety gates
-
-**Week 7-8: Production Launch**
-1. Security audit and testing
-2. Mainnet deployment with conservative caps
-3. Community launch and initial user onboarding
+**Day 2: Frontend & Deployment**
+- Build basic frontend for bond/staking
+- Deploy contracts with safety parameters
+- Full integration testing and mainnet deployment
 
 ---
 
-**Agonic v1: Disciplined yield, ETH reserves, and mechanical token value accrual.**
+## 6) Success Metrics
+
+**Week 1:**
+- Bond fill rate >50%
+- Staking TVL >$100K
+- Buybacks executing automatically
+- TPT published weekly
+
+**Month 1:**
+- Total TVL >$1M
+- Consistent 80% burn rate
+- ETH treasury growing
+- AGN supply decreasing
+
+**6 Months:**
+- Path to $1B TVL via institutional staking
+- Significant AGN supply reduction
+- Strong ETH treasury backing
+- Proven automated execution
+
+---
+
+## 7) Risk Management
+
+**Built-in Protections:**
+- Fixed parameters (no dynamic complexity)
+- Safety gates enforce runway/CR minimums
+- Burn throttle prevents treasury depletion
+- Chainlink pricing prevents oracle manipulation
+- Single-venue strategies reduce protocol risk
+
+**Emergency Controls:**
+- Pause bond issuance
+- Pause buyback execution
+- Emergency treasury withdrawal
+- Governance parameter updates
+
+---
+
+**Agonic v1: Ultra-simple, pure ETH treasury, aggressive AGN burns. Set it and forget it.**

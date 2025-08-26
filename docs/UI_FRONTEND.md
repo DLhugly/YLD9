@@ -1,14 +1,12 @@
-# Agonic UI/Frontend Design Specification
+# Agonic Ultra-Simple UI/Frontend Design
 
-**Theme: "ETH Treasury Fortress" - A pragmatic yet visually striking interface built on StableSwap foundations**
+**Theme: "Pure ETH Treasury" - Clean, minimal interface focused on bonds, staking, and treasury growth**
 
 ---
 
 ## **Design Philosophy**
 
-Below, I'll outline a **pragmatic yet visually striking frontend design** for the Agonic protocol. This builds directly on your existing StableSwap foundation (Next.js, Tailwind CSS, components like SwapCard.tsx), keeping it simple to implement while making it "cool" through modern UI/UX patterns, interactive visualizations, and a thematic style that emphasizes the "ETH Treasury Fortress" concept. The goal is a sleek, intuitive interface that feels like a high-tech vault—secure, transparent, and rewarding—without overcomplicating development (e.g., reuse existing lib/ for data fetching, add Recharts for charts, and Framer Motion for subtle animations).
-
-I'll break it down by **design theme**, **key pages/components**, **visual style**, **tech implementation**, and **why it's cool/high-ROI**.
+Ultra-simple interface matching the protocol's "set it and forget it" approach. Built on existing StableSwap foundation (Next.js, Tailwind CSS) with minimal complexity. Focus on three core actions: USDC bonds, USDC/ETH staking, and treasury monitoring. Clean, professional design that emphasizes transparency and automation.
 
 ---
 
