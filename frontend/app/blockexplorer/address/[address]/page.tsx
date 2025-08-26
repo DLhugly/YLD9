@@ -67,7 +67,7 @@ const getContractData = async (address: Address) => {
 
   const deployedContractsOnChain = contracts[chainId];
   for (const [contractName, contractInfo] of Object.entries(deployedContractsOnChain)) {
-    if (contractInfo.address.toLowerCase() === address.toLowerCase()) {
+    if ((contractInfo as any).address?.toLowerCase() === address.toLowerCase()) {
       contractPath = `contracts/${contractName}.sol`;
       break;
     }
